@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@theme {
+  /* Identité visuelle reprise du logo : bleu profond + rouge signal */
+  --color-bleu-50: #eef2fb;
+  --color-bleu-100: #dbe3f6;
+  --color-bleu-200: #b9c8ec;
+  --color-bleu-300: #8ea6df;
+  --color-bleu-400: #6280cd;
+  --color-bleu-500: #4463b6;
+  --color-bleu-600: #3c58a7;
+  --color-bleu-700: #2f4585;
+  --color-bleu-800: #243564;
+  --color-bleu-900: #1b2949;
+  --color-bleu-950: #111a30;
+
+  --color-brique-50: #fef2f2;
+  --color-brique-100: #fde3e3;
+  --color-brique-200: #fbcbcb;
+  --color-brique-300: #f7a5a5;
+  --color-brique-400: #f16f70;
+  --color-brique-500: #ed2024;
+  --color-brique-600: #d5171b;
+  --color-brique-700: #b21316;
+  --color-brique-800: #931416;
+  --color-brique-900: #7a1719;
+
+  --color-sable-50: #fbf8f3;
+  --color-sable-100: #f5efe4;
+  --color-sable-200: #eaddc6;
+
+  --font-display: var(--police-titre), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--police-texte), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-xl2: 1.25rem;
+}
+
+:root {
+  --fond: #ffffff;
+  --texte: #1b2949;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--fond);
+  color: var(--texte);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* Motif discret repris de la courbe du logo */
+.motif-vagues {
+  background-image: radial-gradient(
+      circle at 12% 20%,
+      color-mix(in srgb, var(--color-bleu-600) 12%, transparent) 0,
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 88% 0%,
+      color-mix(in srgb, var(--color-brique-500) 10%, transparent) 0,
+      transparent 40%
+    );
+}
+
+.lien-souligne {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 2px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.25s ease;
+}
+
+.lien-souligne:hover {
+  background-size: 100% 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
