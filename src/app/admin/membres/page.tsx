@@ -89,9 +89,11 @@ export default async function PageAdminMembres() {
         <div className="mt-6 rounded-2xl border border-bleu-100 bg-white p-6">
           {membres.length ? (
             <FormulaireCotisation
+              // L'e-mail figure déjà dans le tableau voisin : l'ajouter ici
+              // faisait déborder le libellé de la liste déroulante.
               membres={membres.map((membre) => ({
                 id: membre.id,
-                libelle: `${membre.prenoms} ${membre.nom} — ${membre.email}`,
+                libelle: `${membre.prenoms} ${membre.nom}`,
               }))}
             />
           ) : (

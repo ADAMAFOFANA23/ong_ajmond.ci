@@ -107,6 +107,15 @@ export function FormulaireArticle() {
   );
 }
 
+/**
+ * Mois courant au format « AAAA-MM », celui qu'attend `<input type="month">`.
+ * La Côte d'Ivoire est à UTC+0 : la date UTC et la date locale coïncident,
+ * serveur et navigateur calculent donc la même valeur.
+ */
+function periodeCourante(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
 export function FormulaireCotisation({
   membres,
 }: {
@@ -133,9 +142,11 @@ export function FormulaireCotisation({
           label="Nature"
           defaultValue="mensuelle"
           options={[
-            { valeur: "mensuelle", libelle: "Cotisation mensuelle" },
+            // Le champ s'appelle déjà « Nature » : répéter « Cotisation » dans
+            // chaque libellé les faisait dépasser de la colonne.
+            { valeur: "mensuelle", libelle: "Mensuelle" },
             { valeur: "adhesion", libelle: "Droit d'adhésion" },
-            { valeur: "exceptionnelle", libelle: "Cotisation exceptionnelle" },
+            { valeur: "exceptionnelle", libelle: "Exceptionnelle" },
             { valeur: "don", libelle: "Don" },
           ]}
           erreurs={etat.erreurs}
@@ -143,7 +154,8 @@ export function FormulaireCotisation({
         <Champ
           nom="periode"
           label="Période"
-          placeholder="2026-03"
+          type="month"
+          defaultValue={periodeCourante()}
           erreurs={etat.erreurs}
         />
       </div>

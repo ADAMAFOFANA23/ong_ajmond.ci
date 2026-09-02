@@ -36,17 +36,29 @@ begin
 
   -- Filet de sécurité : si le trigger on_auth_user_created n'a pas tourné
   -- (compte créé avant l'application du schéma), on crée le profil manquant.
-  insert into public.profils (id, email, nom, prenoms)
+  --
+  -- `date_adhesion` et `cree_le` sont repris du compte Auth : leurs valeurs par
+  -- défaut (current_date / now()) dateraient l'adhésion du jour où ce script
+  -- est lancé, alors que le membre existe depuis la création de son compte.
+  insert into public.profils (id, email, nom, prenoms, date_adhesion, cree_le)
   select u.id, u.email,
          coalesce(u.raw_user_meta_data ->> 'nom', ''),
-         coalesce(u.raw_user_meta_data ->> 'prenoms', '')
+         coalesce(u.raw_user_meta_data ->> 'prenoms', ''),
+         u.created_at::date,
+         u.created_at
     from auth.users u
    where u.id = cible
   on conflict (id) do nothing;
 
-  update public.profils
-     set role = 'admin', actif = true
-   where id = cible;
+  -- `least` répare aussi un profil déjà présent qui aurait hérité de la date
+  -- du jour, et rend le script rejouable sans effet de bord.
+  update public.profils p
+     set role = 'admin',
+         actif = true,
+         date_adhesion = least(p.date_adhesion, u.created_at::date)
+    from auth.users u
+   where p.id = cible
+     and u.id = cible;
 
   raise notice 'Compte % promu administrateur.', adresse;
 end $$;

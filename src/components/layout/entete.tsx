@@ -59,12 +59,15 @@ export function Entete({ connecte, admin }: { connecte: boolean; admin: boolean 
             <UserRound className="h-4 w-4" aria-hidden />
             {libelleEspace}
           </Link>
-          <Link
-            href="/adhesion"
-            className="inline-flex items-center rounded-full bg-brique-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brique-600"
-          >
-            Adhérer
-          </Link>
+          {/* Un membre déjà connecté n'a rien à faire d'un appel à adhérer. */}
+          {!connecte && (
+            <Link
+              href="/adhesion"
+              className="inline-flex items-center rounded-full bg-brique-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brique-600"
+            >
+              Adhérer
+            </Link>
+          )}
         </div>
 
         <button
@@ -102,12 +105,14 @@ export function Entete({ connecte, admin }: { connecte: boolean; admin: boolean 
                 </Link>
               </li>
             </ul>
-            <Link
-              href="/adhesion"
-              className="mt-4 flex items-center justify-center rounded-full bg-brique-500 px-5 py-3 text-sm font-semibold text-white"
-            >
-              Adhérer à l&apos;ONG
-            </Link>
+            {!connecte && (
+              <Link
+                href="/adhesion"
+                className="mt-4 flex items-center justify-center rounded-full bg-brique-500 px-5 py-3 text-sm font-semibold text-white"
+              >
+                Adhérer à l&apos;ONG
+              </Link>
+            )}
           </div>
         </div>
       )}
