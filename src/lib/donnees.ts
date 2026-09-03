@@ -169,3 +169,84 @@ export async function listerPartenaires(): Promise<Partenaire[]> {
 
   return (data ?? []) as Partenaire[];
 }
+
+/* ------------------------------------------------ Fil d'actualité */
+
+export type EntreeFil = {
+  cle: string;
+  type: "evenement" | "actualite";
+  titre: string;
+  chapo: string | null;
+  date: string;
+  href: string;
+  imageUrl: string | null;
+  graine: string;
+  aVenir: boolean;
+  lieu: string | null;
+};
+
+/**
+ * Fil mêlant actualités et événements publiés.
+ *
+ * L'ordre n'est pas purement chronologique : ce qui n'a pas encore eu lieu
+ * passe devant, du plus proche au plus lointain, parce que c'est ce sur quoi
+ * un visiteur peut encore agir. Le reste suit, du plus récent au plus ancien.
+ */
+export async function listerFilActualite(limite = 12): Promise<EntreeFil[]> {
+  const supabase = await creerClientServeur();
+  if (!supabase) return [];
+
+  const [{ data: evenements }, { data: articles }] = await Promise.all([
+    supabase
+      .from("evenements")
+      .select("id, slug, titre, chapo, debut_le, image_url, etablissement, ville")
+      .eq("publie", true)
+      .order("debut_le", { ascending: false })
+      .limit(limite),
+    supabase
+      .from("articles")
+      .select("id, slug, titre, chapo, publie_le, cree_le, couverture_url, categorie")
+      .eq("publie", true)
+      .order("publie_le", { ascending: false })
+      .limit(limite),
+  ]);
+
+  const maintenant = Date.now();
+
+  const entrees: EntreeFil[] = [
+    ...((evenements ?? []) as Array<Record<string, string | null>>).map((e) => ({
+      cle: `evenement-${e.id}`,
+      type: "evenement" as const,
+      titre: String(e.titre),
+      chapo: e.chapo,
+      date: String(e.debut_le),
+      href: `/evenements/${e.slug}`,
+      imageUrl: e.image_url,
+      graine: String(e.slug),
+      aVenir: new Date(String(e.debut_le)).getTime() >= maintenant,
+      lieu: [e.etablissement, e.ville].filter(Boolean).join(" · ") || null,
+    })),
+    ...((articles ?? []) as Array<Record<string, string | null>>).map((a) => ({
+      cle: `actualite-${a.id}`,
+      type: "actualite" as const,
+      titre: String(a.titre),
+      chapo: a.chapo,
+      date: String(a.publie_le ?? a.cree_le),
+      href: `/actualites/${a.slug}`,
+      imageUrl: a.couverture_url,
+      graine: String(a.slug),
+      aVenir: false,
+      lieu: a.categorie,
+    })),
+  ];
+
+  return entrees
+    .sort((a, b) => {
+      if (a.aVenir !== b.aVenir) return a.aVenir ? -1 : 1;
+      // À venir : le plus proche d'abord. Passé : le plus récent d'abord.
+      return a.aVenir
+        ? a.date.localeCompare(b.date)
+        : b.date.localeCompare(a.date);
+    })
+    .slice(0, limite);
+}

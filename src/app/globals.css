@@ -319,12 +319,16 @@ select {
   opacity: 1;
 }
 
+/*
+ * `--voile-fond` est posé par le carrousel : le fondu doit se confondre avec
+ * la section qui l'accueille, ivoire ou bleu nuit.
+ */
 .voile-piste-gauche {
   left: 0;
-  background: linear-gradient(to right, var(--color-craie-100), transparent);
+  background: linear-gradient(to right, var(--voile-fond, var(--color-craie-100)), transparent);
 }
 
 .voile-piste-droite {
   right: 0;
-  background: linear-gradient(to left, var(--color-craie-100), transparent);
+  background: linear-gradient(to left, var(--voile-fond, var(--color-craie-100)), transparent);
 }

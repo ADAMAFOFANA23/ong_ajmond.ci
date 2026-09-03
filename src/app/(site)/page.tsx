@@ -14,8 +14,9 @@ import {
   CarrouselPartenaires,
   type CartePartenaire,
 } from "@/components/sections/carrousel-partenaires";
-import { etapesDuDeroule, nombreContenu } from "@/lib/contenus";
-import { lireContenus, listerPartenaires } from "@/lib/donnees";
+import { nombreContenu } from "@/lib/contenus";
+import { lireContenus, listerFilActualite, listerPartenaires } from "@/lib/donnees";
+import { FilActualite } from "@/components/sections/fil-actualite";
 import type { Partenaire } from "@/lib/supabase/types";
 import { LienBouton } from "@/components/ui/primitives";
 import {
@@ -76,7 +77,11 @@ const PARCOURS = [
 
 export default async function PageAccueil() {
   // Surcharges saisies par le bureau ; à défaut, les textes du code.
-  const [contenus, partenaires] = await Promise.all([lireContenus(), listerPartenaires()]);
+  const [contenus, partenaires, fil] = await Promise.all([
+    lireContenus(),
+    listerPartenaires(),
+    listerFilActualite(),
+  ]);
 
   // Table vide — base neuve ou migration non jouée : on retombe sur les
   // listes livrées dans le code plutôt que d'afficher une section vide.
@@ -91,11 +96,6 @@ export default async function PageAccueil() {
 
   const depuisNoms = (noms: readonly string[]): CartePartenaire[] =>
     noms.map((nom) => ({ cle: nom, nom }));
-
-  // Le premier programme alimente le bloc « Forum » ; il reste éditable au
-  // même endroit que les autres, dans la liste des programmes.
-  const forum = contenus.listes["programmes.liste"][0] ?? {};
-  const deroule = etapesDuDeroule(forum.deroule);
 
   const adhesion = nombreContenu(contenus, "cotisation.adhesion", COTISATIONS.adhesion);
   const mensuelle = nombreContenu(contenus, "cotisation.mensuelle", COTISATIONS.mensuelle);
@@ -275,55 +275,53 @@ export default async function PageAccueil() {
         </div>
       </section>
 
-      {/* ---------------------------------------------------------- Forum */}
+      {/* ------------------------------------ Actualités et événements */}
       <section className="sur-sombre bg-bleu-950 py-20 text-white lg:py-28">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-[1fr_1fr] lg:gap-20">
-            <div>
-              <p className="chiffres text-sm font-medium text-brique-400">{forum.edition}</p>
-              <h2 className="mt-4 font-display text-[clamp(2rem,3.5vw,3.25rem)] font-light leading-[1.05]">
-                {forum.titre}
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div className="max-w-2xl">
+              <h2 className="font-display text-[clamp(2rem,3.5vw,3.25rem)] font-light leading-[1.05]">
+                Ce que fait l&apos;ONG en ce moment
               </h2>
-              <p className="mt-6 max-w-[65ch] text-lg leading-relaxed text-bleu-100/80">
-                {forum.description}
+              <p className="mt-5 text-lg leading-relaxed text-bleu-100/80">
+                Les prochaines interventions dans les établissements, et les comptes rendus des
+                précédentes. Ce qui n&apos;a pas encore eu lieu passe devant.
               </p>
-
-              <CadrePhoto
-                ton="sombre"
-                largeur={1400}
-                hauteur={900}
-                src={contenus.textes["accueil.photo_forum"] || undefined}
-                alt="Plénière du Forum d'échanges"
-                sujet="Plénière du forum : salle d'établissement, élèves assis, intervenant au micro."
-                className="mt-10 aspect-[14/9] w-full"
-              />
             </div>
 
-            <div>
-              <h3 className="border-b border-white/20 pb-4 text-sm font-semibold uppercase tracking-[0.14em] text-bleu-100/60">
-                Déroulé d&apos;une matinée
-              </h3>
-              <ol>
-                {deroule.map((etape) => (
-                  <li
-                    key={etape.horaire}
-                    className="ligne-remplie grid grid-cols-[8.5rem_1fr] items-baseline gap-4 border-b border-white/12 px-2 py-4"
-                  >
-                    <span className="chiffres text-sm text-bleu-100/60">{etape.horaire}</span>
-                    <span className="text-[15px] leading-snug">{etape.intitule}</span>
-                  </li>
-                ))}
-              </ol>
-
+            <div className="flex flex-wrap gap-3">
               <LienBouton
                 href="/evenements"
                 variante="fantome"
-                className="mt-8 border border-white/25 text-white hover:bg-white/10"
+                className="border border-white/25 text-white hover:bg-white/10"
               >
-                Voir les prochaines dates
+                Agenda complet
+                <ArrowUpRight className="h-4 w-4" aria-hidden />
+              </LienBouton>
+              <LienBouton
+                href="/actualites"
+                variante="fantome"
+                className="border border-white/25 text-white hover:bg-white/10"
+              >
+                Toutes les actualités
                 <ArrowUpRight className="h-4 w-4" aria-hidden />
               </LienBouton>
             </div>
+          </div>
+
+          <div className="mt-12">
+            {fil.length ? (
+              <FilActualite entrees={fil} />
+            ) : (
+              /*
+                Une piste vide ne dit rien. Tant que rien n'est publié, on
+                l'annonce plutôt que d'afficher un cadre creux.
+              */
+              <p className="rounded-2xl border border-dashed border-white/20 px-6 py-14 text-center text-bleu-100/70">
+                Aucune publication pour le moment. Les prochaines interventions et les comptes
+                rendus apparaîtront ici dès leur mise en ligne.
+              </p>
+            )}
           </div>
         </div>
       </section>
