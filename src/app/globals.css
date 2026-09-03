@@ -230,6 +230,15 @@ select {
  */
 .piste-defilante {
   scroll-snap-type: x proximity;
+}
+
+/*
+ * En dérive continue, l'ancrage n'a plus lieu d'être : le défilement ne
+ * s'arrête jamais vraiment, et il produirait un petit sursaut chaque fois que
+ * la dérive se met en pause au survol.
+ */
+.piste-defilante[data-boucle="oui"] {
+  scroll-snap-type: none;
   scrollbar-width: none;
   -ms-overflow-style: none;
   overscroll-behavior-x: contain;
