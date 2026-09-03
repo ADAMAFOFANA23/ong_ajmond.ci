@@ -1,4 +1,14 @@
-import { ORGANISATION, PROGRAMMES, VISION } from "@/content/organisation";
+import {
+  CHIFFRES,
+  COTISATIONS,
+  HISTORIQUE,
+  MISSIONS,
+  OBJECTIF_GENERAL,
+  ORGANISATION,
+  PROGRAMMES,
+  TYPES_MEMBRES,
+  VISION,
+} from "@/content/organisation";
 
 /**
  * Contenus du site modifiables depuis l'espace de gestion.
@@ -12,7 +22,15 @@ import { ORGANISATION, PROGRAMMES, VISION } from "@/content/organisation";
  * d'administration et la lecture côté site s'y adaptent seuls.
  */
 
-export type TypeChamp = "texte" | "long" | "image";
+export type TypeChamp = "texte" | "long" | "nombre" | "image" | "liste";
+
+/** Colonne d'une liste répétable. */
+export type ColonneListe = {
+  nom: string;
+  label: string;
+  type: "texte" | "long";
+  aide?: string;
+};
 
 export type ChampContenu = {
   cle: string;
@@ -22,9 +40,16 @@ export type ChampContenu = {
   aide?: string;
   /** Valeur affichée tant que rien n'a été saisi. */
   defaut: string;
+  /** Pour `liste` seulement : les colonnes d'une ligne. */
+  colonnes?: ColonneListe[];
+  /** Pour `liste` seulement : les lignes livrées dans le code. */
+  lignesParDefaut?: LigneListe[];
 };
 
+export type LigneListe = Record<string, string>;
+
 export const CHAMPS_CONTENU: ChampContenu[] = [
+  /* ------------------------------------------------------- Page d'accueil */
   {
     cle: "accueil.titre",
     groupe: "Page d'accueil",
@@ -71,6 +96,102 @@ export const CHAMPS_CONTENU: ChampContenu[] = [
     type: "texte",
     defaut: "Un élève vous inquiète, un établissement veut nous recevoir ?",
   },
+
+  /* ------------------------------------------------ Contenus statutaires */
+  {
+    cle: "statuts.objectif_general",
+    groupe: "Contenus statutaires",
+    label: "Objectif général",
+    type: "long",
+    aide: "Affiché en tête de la section « Ce que disent les enquêtes ».",
+    defaut: OBJECTIF_GENERAL,
+  },
+  {
+    cle: "statuts.chiffres",
+    groupe: "Contenus statutaires",
+    label: "Chiffres d'enquête",
+    type: "liste",
+    aide: "Chaque chiffre porte sa source. Ne rien afficher sans origine vérifiable.",
+    defaut: "",
+    colonnes: [
+      { nom: "valeur", label: "Chiffre", type: "texte", aide: "Par exemple « 40 % »." },
+      { nom: "libelle", label: "Ce qu'il mesure", type: "long" },
+      { nom: "source", label: "Source", type: "texte" },
+    ],
+    lignesParDefaut: CHIFFRES.map((c) => ({
+      valeur: c.valeur,
+      libelle: c.libelle,
+      source: c.source,
+    })),
+  },
+  {
+    cle: "statuts.missions",
+    groupe: "Contenus statutaires",
+    label: "Missions statutaires",
+    type: "liste",
+    defaut: "",
+    colonnes: [
+      { nom: "titre", label: "Titre", type: "texte" },
+      { nom: "description", label: "Description", type: "long" },
+    ],
+    lignesParDefaut: MISSIONS.map((m) => ({ titre: m.titre, description: m.description })),
+  },
+  {
+    cle: "statuts.historique",
+    groupe: "Contenus statutaires",
+    label: "Repères chronologiques",
+    type: "liste",
+    aide: "Affichés dans l'ordre de la liste, du plus ancien au plus récent.",
+    defaut: "",
+    colonnes: [
+      { nom: "annee", label: "Année", type: "texte" },
+      { nom: "titre", label: "Titre", type: "texte" },
+      { nom: "texte", label: "Texte", type: "long" },
+    ],
+    lignesParDefaut: HISTORIQUE.map((h) => ({
+      annee: h.annee,
+      titre: h.titre,
+      texte: h.texte,
+    })),
+  },
+  {
+    cle: "statuts.types_membres",
+    groupe: "Contenus statutaires",
+    label: "Qualités de membre",
+    type: "liste",
+    aide: "Reprises des statuts. Les modifier ici ne change pas les types en base de données.",
+    defaut: "",
+    colonnes: [
+      { nom: "nom", label: "Intitulé", type: "texte" },
+      { nom: "description", label: "Description", type: "long" },
+    ],
+    lignesParDefaut: TYPES_MEMBRES.map((t) => ({ nom: t.nom, description: t.description })),
+  },
+
+  /* ------------------------------------------------------------ Cotisations */
+  {
+    cle: "cotisation.adhesion",
+    groupe: "Cotisations",
+    label: "Droit d'adhésion (FCFA)",
+    type: "nombre",
+    defaut: String(COTISATIONS.adhesion),
+  },
+  {
+    cle: "cotisation.mensuelle",
+    groupe: "Cotisations",
+    label: "Cotisation mensuelle (FCFA)",
+    type: "nombre",
+    defaut: String(COTISATIONS.mensuelle),
+  },
+  {
+    cle: "cotisation.note",
+    groupe: "Cotisations",
+    label: "Note sur les cotisations",
+    type: "long",
+    defaut: COTISATIONS.note,
+  },
+
+  /* ------------------------------------------------------------ Coordonnées */
   {
     cle: "organisation.email",
     groupe: "Coordonnées",
@@ -110,26 +231,60 @@ export const CHAMPS_CONTENU: ChampContenu[] = [
 
 export const GROUPES_CONTENU = [...new Set(CHAMPS_CONTENU.map((champ) => champ.groupe))];
 
-export type Contenus = Record<string, string>;
+export const CHAMPS_LISTE = CHAMPS_CONTENU.filter((champ) => champ.type === "liste");
 
-/** Valeurs par défaut, utilisées tant que la base ne dit rien d'autre. */
+export type Contenus = {
+  /** Champs simples : texte, texte long, nombre, image. */
+  textes: Record<string, string>;
+  /** Champs de type liste. */
+  listes: Record<string, LigneListe[]>;
+};
+
 export function contenusParDefaut(): Contenus {
-  return Object.fromEntries(CHAMPS_CONTENU.map((champ) => [champ.cle, champ.defaut]));
+  const textes: Record<string, string> = {};
+  const listes: Record<string, LigneListe[]> = {};
+
+  for (const champ of CHAMPS_CONTENU) {
+    if (champ.type === "liste") listes[champ.cle] = champ.lignesParDefaut ?? [];
+    else textes[champ.cle] = champ.defaut;
+  }
+
+  return { textes, listes };
 }
 
 /**
  * Fusionne les surcharges enregistrées avec les valeurs du code.
- * Une chaîne vide en base compte comme « pas de surcharge ».
+ *
+ * Une chaîne vide ou une liste vide comptent comme « pas de surcharge » : on
+ * ne peut donc pas vider une section par mégarde, seulement la remplacer.
  */
 export function fusionnerContenus(
-  lignes: Array<{ cle: string; valeur: string | null; image_url: string | null }> | null,
+  lignes:
+    | Array<{
+        cle: string;
+        valeur: string | null;
+        image_url: string | null;
+        donnees: unknown;
+      }>
+    | null,
 ): Contenus {
   const contenus = contenusParDefaut();
 
   for (const ligne of lignes ?? []) {
+    if (Array.isArray(ligne.donnees) && ligne.donnees.length > 0) {
+      contenus.listes[ligne.cle] = ligne.donnees as LigneListe[];
+      continue;
+    }
+
     const valeur = (ligne.image_url ?? ligne.valeur ?? "").trim();
-    if (valeur) contenus[ligne.cle] = valeur;
+    if (valeur) contenus.textes[ligne.cle] = valeur;
   }
 
   return contenus;
+}
+
+/** Montant lu depuis les contenus, avec repli sur la valeur du code. */
+export function nombreContenu(contenus: Contenus, cle: string, repli: number): number {
+  const brut = Number.parseInt(contenus.textes[cle] ?? "", 10);
+  return Number.isFinite(brut) ? brut : repli;
 }

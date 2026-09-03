@@ -14,20 +14,16 @@ import {
   CarrouselPartenaires,
   type CartePartenaire,
 } from "@/components/sections/carrousel-partenaires";
+import { nombreContenu } from "@/lib/contenus";
 import { lireContenus, listerPartenaires } from "@/lib/donnees";
 import type { Partenaire } from "@/lib/supabase/types";
 import { LienBouton } from "@/components/ui/primitives";
 import {
-  CHIFFRES,
   COTISATIONS,
   ETABLISSEMENTS_PARTENAIRES,
-  HISTORIQUE,
-  MISSIONS,
-  OBJECTIF_GENERAL,
   ORGANISATION,
   PARTENAIRES_TECHNIQUES,
   PROGRAMMES,
-  TYPES_MEMBRES,
   VISION,
 } from "@/content/organisation";
 
@@ -36,12 +32,12 @@ export const metadata: Metadata = {
     "A.J.MOND-CI intervient dans les lycées et collèges de Côte d'Ivoire contre la drogue, l'alcool, le tabac, les violences et la prostitution : sensibilisation, écoute, formation des encadreurs et réinsertion.",
 };
 
-const ICONES_MISSION = {
-  handshake: Handshake,
-  graduation: GraduationCap,
-  ear: Ear,
-  sprout: Sprout,
-} as const;
+/*
+ * Les missions sont éditables et ne portent pas d'icône : celle-ci suit le
+ * rang dans la liste. Une mission ajoutée au-delà de la quatrième reçoit
+ * l'icône générique plutôt qu'aucune.
+ */
+const ICONES_MISSION = [Handshake, GraduationCap, Ear, Sprout] as const;
 
 /**
  * Quatre publics se partagent cette page (cf. PRODUCT.md). Plutôt que de
@@ -98,6 +94,9 @@ export default async function PageAccueil() {
   const depuisNoms = (noms: readonly string[]): CartePartenaire[] =>
     noms.map((nom) => ({ cle: nom, nom }));
 
+  const adhesion = nombreContenu(contenus, "cotisation.adhesion", COTISATIONS.adhesion);
+  const mensuelle = nombreContenu(contenus, "cotisation.mensuelle", COTISATIONS.mensuelle);
+
   const etablissements = enCartes(partenaires.filter((p) => p.type === "etablissement"));
   const autresPartenaires = enCartes(partenaires.filter((p) => p.type !== "etablissement"));
 
@@ -113,11 +112,11 @@ export default async function PageAccueil() {
             />
 
             <h1 className="ouverture-titre ouverture-delai-1 mt-8 font-display text-[clamp(2.75rem,7vw,5.5rem)] font-light leading-[0.98] tracking-[-0.03em]">
-              {contenus["accueil.titre"]}
+              {contenus.textes["accueil.titre"]}
             </h1>
 
             <p className="ouverture-titre ouverture-delai-2 mt-7 max-w-[62ch] text-lg leading-relaxed text-bleu-100/80">
-              {contenus["accueil.chapo"]}
+              {contenus.textes["accueil.chapo"]}
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-3">
@@ -137,7 +136,7 @@ export default async function PageAccueil() {
             <dl className="mt-14 grid gap-x-8 gap-y-4 border-t border-white/15 pt-6 text-sm sm:grid-cols-3">
               <div>
                 <dt className="text-bleu-100/55">Siège</dt>
-                <dd className="mt-1 font-medium">{contenus["organisation.siege"]}</dd>
+                <dd className="mt-1 font-medium">{contenus.textes["organisation.siege"]}</dd>
               </div>
               <div>
                 <dt className="text-bleu-100/55">Statut</dt>
@@ -154,7 +153,7 @@ export default async function PageAccueil() {
             ton="sombre"
             largeur={1200}
             hauteur={1500}
-            src={contenus["accueil.photo_hero"] || undefined}
+            src={contenus.textes["accueil.photo_hero"] || undefined}
             alt="Intervention de l'ONG dans un établissement"
             sujet="Portrait vertical d'une intervention en lycée : élèves en atelier ou intervenant face à une classe."
             className="aspect-[4/5] w-full lg:aspect-[4/5]"
@@ -206,7 +205,7 @@ export default async function PageAccueil() {
               Ce que disent les enquêtes
             </h2>
             <p className="mt-6 max-w-[65ch] text-lg leading-relaxed text-bleu-800/80">
-              {OBJECTIF_GENERAL}
+              {contenus.textes["statuts.objectif_general"]}
             </p>
             <p className="mt-5 max-w-[65ch] leading-relaxed text-bleu-800/70">
               Les données ci-contre viennent de nos propres enquêtes en établissement et des
@@ -216,7 +215,7 @@ export default async function PageAccueil() {
           </div>
 
           <dl className="border-t border-craie-300">
-            {CHIFFRES.map((chiffre) => (
+            {contenus.listes["statuts.chiffres"].map((chiffre) => (
               <div
                 key={chiffre.libelle}
                 className="grid grid-cols-[auto_1fr] items-baseline gap-x-6 gap-y-1 border-b border-craie-300 py-6 sm:gap-x-10"
@@ -249,8 +248,8 @@ export default async function PageAccueil() {
           </div>
 
           <ul className="mt-14 border-t border-craie-200">
-            {MISSIONS.map((mission) => {
-              const Icone = ICONES_MISSION[mission.icone as keyof typeof ICONES_MISSION];
+            {contenus.listes["statuts.missions"].map((mission, rang) => {
+              const Icone = ICONES_MISSION[rang] ?? Handshake;
               return (
                 <li key={mission.titre} className="border-b border-craie-200">
                   <div className="grid gap-3 py-8 sm:grid-cols-[3rem_18rem_1fr] sm:items-start sm:gap-8">
@@ -283,14 +282,14 @@ export default async function PageAccueil() {
                 {forum.titre}
               </h2>
               <p className="mt-6 max-w-[65ch] text-lg leading-relaxed text-bleu-100/80">
-                {contenus["accueil.forum_description"]}
+                {contenus.textes["accueil.forum_description"]}
               </p>
 
               <CadrePhoto
                 ton="sombre"
                 largeur={1400}
                 hauteur={900}
-                src={contenus["accueil.photo_forum"] || undefined}
+                src={contenus.textes["accueil.photo_forum"] || undefined}
                 alt="Plénière du Forum d'échanges"
                 sujet="Plénière du forum : salle d'établissement, élèves assis, intervenant au micro."
                 className="mt-10 aspect-[14/9] w-full"
@@ -371,7 +370,7 @@ export default async function PageAccueil() {
           </h2>
 
           <ol className="mt-12 border-t border-craie-200">
-            {HISTORIQUE.map((etape) => (
+            {contenus.listes["statuts.historique"].map((etape) => (
               <li
                 key={etape.annee}
                 className="grid gap-2 border-b border-craie-200 py-8 sm:grid-cols-[7rem_1fr] sm:gap-10"
@@ -409,7 +408,7 @@ export default async function PageAccueil() {
             <div className="mt-10 flex flex-wrap items-end gap-x-12 gap-y-6 border-y border-craie-300 py-8">
               <p>
                 <span className="chiffres block font-display text-4xl font-semibold text-bleu-900">
-                  {COTISATIONS.adhesion.toLocaleString("fr-FR")} {COTISATIONS.devise}
+                  {adhesion.toLocaleString("fr-FR")} {COTISATIONS.devise}
                 </span>
                 <span className="mt-1 block text-sm text-bleu-800/65">
                   droit d&apos;adhésion, une seule fois
@@ -417,14 +416,14 @@ export default async function PageAccueil() {
               </p>
               <p>
                 <span className="chiffres block font-display text-4xl font-semibold text-bleu-900">
-                  {COTISATIONS.mensuelle.toLocaleString("fr-FR")} {COTISATIONS.devise}
+                  {mensuelle.toLocaleString("fr-FR")} {COTISATIONS.devise}
                 </span>
                 <span className="mt-1 block text-sm text-bleu-800/65">par mois</span>
               </p>
             </div>
 
             <p className="mt-6 max-w-[65ch] text-sm leading-relaxed text-bleu-800/65">
-              {COTISATIONS.note}
+              {contenus.textes["cotisation.note"]}
             </p>
 
             <div className="mt-9 flex flex-wrap gap-3">
@@ -443,8 +442,8 @@ export default async function PageAccueil() {
               Quatre qualités de membre
             </h3>
             <dl>
-              {TYPES_MEMBRES.map((type) => (
-                <div key={type.cle} className="border-b border-craie-300 py-6">
+              {contenus.listes["statuts.types_membres"].map((type) => (
+                <div key={type.nom} className="border-b border-craie-300 py-6">
                   <dt className="font-display text-lg font-semibold text-bleu-900">{type.nom}</dt>
                   <dd className="mt-2 max-w-[68ch] text-[15px] leading-relaxed text-bleu-800/75">
                     {type.description}
@@ -461,7 +460,7 @@ export default async function PageAccueil() {
         <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:px-8">
           <div>
             <h2 className="font-display text-[clamp(1.9rem,3vw,2.75rem)] font-light leading-[1.1]">
-              {contenus["accueil.contact_titre"]}
+              {contenus.textes["accueil.contact_titre"]}
             </h2>
             <p className="mt-5 max-w-[60ch] text-lg leading-relaxed text-bleu-100/80">
               Écrivez-nous ou appelez le bureau. Chaque demande d&apos;intervention est étudiée
@@ -478,17 +477,17 @@ export default async function PageAccueil() {
               <dt className="text-bleu-100/55">Courriel</dt>
               <dd className="mt-1">
                 <a
-                  href={`mailto:${contenus["organisation.email"]}`}
+                  href={`mailto:${contenus.textes["organisation.email"]}`}
                   className="lien-souligne font-medium"
                 >
-                  {contenus["organisation.email"]}
+                  {contenus.textes["organisation.email"]}
                 </a>
               </dd>
             </div>
             <div>
               <dt className="text-bleu-100/55">Téléphone</dt>
               <dd className="chiffres mt-1 space-y-1">
-                {[contenus["organisation.telephone1"], contenus["organisation.telephone2"]]
+                {[contenus.textes["organisation.telephone1"], contenus.textes["organisation.telephone2"]]
                   .filter(Boolean)
                   .map((numero) => (
                   <a
@@ -504,7 +503,7 @@ export default async function PageAccueil() {
             <div>
               <dt className="text-bleu-100/55">Adresse</dt>
               <dd className="mt-1 font-medium">
-                {contenus["organisation.siege"]} — {contenus["organisation.boite_postale"]}
+                {contenus.textes["organisation.siege"]} — {contenus.textes["organisation.boite_postale"]}
               </dd>
             </div>
           </dl>

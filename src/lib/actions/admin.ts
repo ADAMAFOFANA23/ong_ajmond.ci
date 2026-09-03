@@ -418,15 +418,56 @@ export async function enregistrerContenus(
     data: { user },
   } = await supabase.auth.getUser();
 
-  const lignes: Array<{ cle: string; valeur: string | null; image_url: string | null; maj_le: string; maj_par: string | null }> = [];
+  const maintenant = new Date().toISOString();
+  const lignes = [];
 
   for (const champ of CHAMPS_CONTENU) {
     const brut = String(donnees.get(champ.cle) ?? "").trim();
+
+    if (champ.type === "liste") {
+      // L'éditeur envoie un JSON ; on ne fait confiance ni à sa forme ni à
+      // son contenu : seules les colonnes déclarées sont retenues, et une
+      // ligne entièrement vide est écartée plutôt qu'enregistrée.
+      let analysee: unknown;
+      try {
+        analysee = brut ? JSON.parse(brut) : [];
+      } catch {
+        return {
+          statut: "erreur",
+          message: `Contenu illisible pour « ${champ.label} ». Rechargez la page et réessayez.`,
+        };
+      }
+
+      if (!Array.isArray(analysee)) {
+        return { statut: "erreur", message: `Format inattendu pour « ${champ.label} ».` };
+      }
+
+      const colonnes = champ.colonnes ?? [];
+      const propres = (analysee as Record<string, unknown>[])
+        .map((ligne) =>
+          Object.fromEntries(
+            colonnes.map((colonne) => [colonne.nom, String(ligne?.[colonne.nom] ?? "").trim()]),
+          ),
+        )
+        .filter((ligne) => Object.values(ligne).some(Boolean));
+
+      lignes.push({
+        cle: champ.cle,
+        valeur: null,
+        image_url: null,
+        donnees: propres,
+        maj_le: maintenant,
+        maj_par: user?.id ?? null,
+      });
+      continue;
+    }
+
     lignes.push({
       cle: champ.cle,
       valeur: champ.type === "image" ? null : brut || null,
       image_url: champ.type === "image" ? brut || null : null,
-      maj_le: new Date().toISOString(),
+      donnees: null,
+      maj_le: maintenant,
       maj_par: user?.id ?? null,
     });
   }

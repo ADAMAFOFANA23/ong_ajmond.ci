@@ -10,11 +10,12 @@ import {
   enregistrerMedia,
   enregistrerPartenaire,
 } from "@/lib/actions/admin";
-import { CHAMPS_CONTENU, GROUPES_CONTENU } from "@/lib/contenus";
+import { CHAMPS_CONTENU, GROUPES_CONTENU, type Contenus } from "@/lib/contenus";
 import type { Article, Evenement, Media, Partenaire } from "@/lib/supabase/types";
 import { ETAT_INITIAL } from "@/lib/actions/etat";
 import { BoutonEnvoi, CaseACocher, Champ, Selecteur, Zone } from "./champs";
 import { ChampImage } from "./champ-image";
+import { EditeurListe } from "./editeur-liste";
 import { Message } from "@/components/ui/primitives";
 
 /**
@@ -394,11 +395,11 @@ export function FormulaireMedia({
  * liste de champs n'est recopiée ici, donc ajouter un contenu éditable ne
  * demande pas de retoucher cet écran.
  */
-export function FormulaireContenus({ valeurs }: { valeurs: Record<string, string> }) {
+export function FormulaireContenus({ valeurs }: { valeurs: Contenus }) {
   const [etat, action] = useActionState(enregistrerContenus, ETAT_INITIAL);
 
   return (
-    <form action={action} className="space-y-10" noValidate>
+    <form action={action} className="space-y-12" noValidate>
       {etat.statut === "succes" && <Message ton="succes">{etat.message}</Message>}
       {etat.statut === "erreur" && etat.message && <Message ton="erreur">{etat.message}</Message>}
 
@@ -408,8 +409,18 @@ export function FormulaireContenus({ valeurs }: { valeurs: Record<string, string
             {groupe}
           </h3>
 
-          <div className="mt-6 space-y-5">
+          <div className="mt-6 space-y-8">
             {CHAMPS_CONTENU.filter((champ) => champ.groupe === groupe).map((champ) => {
+              if (champ.type === "liste") {
+                return (
+                  <EditeurListe
+                    key={champ.cle}
+                    champ={champ}
+                    lignesInitiales={valeurs.listes[champ.cle] ?? []}
+                  />
+                );
+              }
+
               if (champ.type === "image") {
                 return (
                   <ChampImage
@@ -418,7 +429,7 @@ export function FormulaireContenus({ valeurs }: { valeurs: Record<string, string
                     label={champ.label}
                     dossier="site"
                     aide={champ.aide}
-                    valeurInitiale={valeurs[champ.cle]}
+                    valeurInitiale={valeurs.textes[champ.cle]}
                   />
                 );
               }
@@ -431,7 +442,7 @@ export function FormulaireContenus({ valeurs }: { valeurs: Record<string, string
                     label={champ.label}
                     rows={4}
                     aide={champ.aide}
-                    defaultValue={valeurs[champ.cle]}
+                    defaultValue={valeurs.textes[champ.cle]}
                     erreurs={etat.erreurs}
                   />
                 );
@@ -442,8 +453,10 @@ export function FormulaireContenus({ valeurs }: { valeurs: Record<string, string
                   key={champ.cle}
                   nom={champ.cle}
                   label={champ.label}
+                  type={champ.type === "nombre" ? "number" : "text"}
+                  min={champ.type === "nombre" ? 0 : undefined}
                   aide={champ.aide}
-                  defaultValue={valeurs[champ.cle]}
+                  defaultValue={valeurs.textes[champ.cle]}
                   erreurs={etat.erreurs}
                 />
               );

@@ -144,7 +144,9 @@ export async function lireContenus(): Promise<Contenus> {
   const supabase = await creerClientServeur();
   if (!supabase) return contenusParDefaut();
 
-  const { data } = await supabase.from("contenus_site").select("cle, valeur, image_url");
+  const { data } = await supabase
+    .from("contenus_site")
+    .select("cle, valeur, image_url, donnees");
   return fusionnerContenus(data ?? null);
 }
 
