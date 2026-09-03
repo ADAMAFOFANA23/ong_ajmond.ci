@@ -48,6 +48,16 @@ export function CarrouselPartenaires({
   const piste = useRef<HTMLUListElement>(null);
   const animation = useRef<number | null>(null);
   const derniereImage = useRef(0);
+
+  /*
+   * Position en flottant, tenue a part.
+   *
+   * `scrollLeft` est arrondi a l'entier par le navigateur. A 22 px/s, une image
+   * ne fait avancer que d'environ 0,37 px : relire `scrollLeft` puis y ajouter
+   * cette fraction redonne le meme entier, et la derive reste sur place. On
+   * accumule donc soi-meme et on n'ecrit que le resultat.
+   */
+  const position = useRef(0);
   const repriseDifferee = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [boucle, setBoucle] = useState(false);
@@ -118,6 +128,8 @@ export function CarrouselPartenaires({
     if (tour <= 0) return;
 
     derniereImage.current = 0;
+    // On repart d'ou l'utilisateur a laisse la piste.
+    position.current = element.scrollLeft;
 
     const avancer = (maintenant: number) => {
       if (derniereImage.current === 0) derniereImage.current = maintenant;
@@ -125,12 +137,12 @@ export function CarrouselPartenaires({
       const ecoule = (maintenant - derniereImage.current) / 1000;
       derniereImage.current = maintenant;
 
-      let position = element.scrollLeft + VITESSE * ecoule;
+      position.current += VITESSE * ecoule;
 
-      // Le contenu étant dupliqué, reculer d'un tour exact est invisible :
-      // aucune carte ne change de place à l'écran.
-      if (position >= tour) position -= tour;
-      element.scrollLeft = position;
+      // Reculer d'un tour exact est invisible : le contenu se repete, aucune
+      // carte ne change de place a l'ecran.
+      if (position.current >= tour * 2) position.current -= tour;
+      element.scrollLeft = position.current;
 
       animation.current = requestAnimationFrame(avancer);
     };
@@ -149,6 +161,39 @@ export function CarrouselPartenaires({
     document.addEventListener("visibilitychange", suivre);
     return () => document.removeEventListener("visibilitychange", suivre);
   }, []);
+
+  /**
+   * Ramene la position dans le tour du milieu.
+   *
+   * Le contenu est triple : le tour central est encadre d'une copie de chaque
+   * cote, donc glisser d'un tour entier ne change rien a l'ecran. C'est ce qui
+   * permet de tourner dans les deux sens sans jamais buter sur une extremite.
+   */
+  const recentrer = useCallback(() => {
+    const element = piste.current;
+    if (!element || !boucle) return;
+
+    const tour = mesurerTour();
+    if (tour <= 0) return;
+
+    const x = element.scrollLeft;
+    if (x < tour * 0.5) element.scrollLeft = x + tour;
+    else if (x > tour * 2.5) element.scrollLeft = x - tour;
+
+    position.current = element.scrollLeft;
+  }, [boucle, mesurerTour]);
+
+  /** A l'entree en boucle, on se place au debut du tour central. */
+  useEffect(() => {
+    const element = piste.current;
+    if (!element || !boucle) return;
+
+    const tour = mesurerTour();
+    if (tour <= 0 || element.scrollLeft > 4) return;
+
+    element.scrollLeft = tour;
+    position.current = tour;
+  }, [boucle, mesurerTour]);
 
   const suspendre = useCallback(() => {
     if (repriseDifferee.current) clearTimeout(repriseDifferee.current);
@@ -180,6 +225,7 @@ export function CarrouselPartenaires({
     if (reduit || document.hidden || Math.abs(distance) < 2) {
       element.scrollLeft = cible;
       mesurer();
+      recentrer();
       return;
     }
 
@@ -197,6 +243,7 @@ export function CarrouselPartenaires({
       } else {
         animation.current = null;
         mesurer();
+        recentrer();
       }
     };
 
@@ -215,14 +262,11 @@ export function CarrouselPartenaires({
     const pas = seconde ? seconde.offsetLeft - premiere.offsetLeft : premiere.offsetWidth;
     const parPage = Math.max(1, Math.floor(element.clientWidth / pas));
 
-    const tour = mesurerTour();
     let cible = element.scrollLeft + direction * pas * parPage;
 
-    if (boucle && tour > 0) {
-      // En boucle on enroule au lieu de buter contre une extrémité.
-      if (cible < 0) cible += tour;
-      if (cible >= tour) cible -= tour;
-    } else {
+    // En boucle, le tour central laisse de la marge des deux cotes : on se
+    // contente d'avancer, `recentrer` remettra la position dans la fenetre.
+    if (!boucle) {
       cible = Math.min(element.scrollWidth - element.clientWidth, Math.max(0, cible));
     }
 
@@ -240,6 +284,7 @@ export function CarrouselPartenaires({
    */
   const cartes = boucle
     ? [
+        ...partenaires.map((p) => ({ ...p, copie: true })),
         ...partenaires.map((p) => ({ ...p, copie: false })),
         ...partenaires.map((p) => ({ ...p, copie: true })),
       ]
@@ -309,7 +354,7 @@ export function CarrouselPartenaires({
           tabIndex={0}
           aria-label={titre}
           data-boucle={boucle ? "oui" : "non"}
-          onScroll={boucle ? undefined : mesurer}
+          onScroll={boucle ? recentrer : mesurer}
           onMouseEnter={suspendre}
           onMouseLeave={reprendreApresDelai}
           onFocusCapture={suspendre}
