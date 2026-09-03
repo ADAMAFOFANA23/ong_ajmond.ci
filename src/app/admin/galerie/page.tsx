@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
+import { Pencil, Plus } from "lucide-react";
 
 import { FormulaireMedia } from "@/components/forms/formulaires-admin";
-import { Badge, EtatVide } from "@/components/ui/primitives";
+import { Badge, EtatVide, cn } from "@/components/ui/primitives";
 import { basculerPublicationMedia, retirerMedia } from "@/lib/actions/admin";
 import { formaterDateCourte } from "@/lib/format";
 import { creerClientServeur } from "@/lib/supabase/server";
@@ -10,7 +12,12 @@ import type { Evenement, Media } from "@/lib/supabase/types";
 
 export const metadata: Metadata = { title: "Galerie" };
 
-export default async function PageAdminGalerie() {
+export default async function PageAdminGalerie({
+  searchParams,
+}: {
+  searchParams: Promise<{ edition?: string }>;
+}) {
+  const { edition } = await searchParams;
   const supabase = await creerClientServeur();
 
   const [{ data: mediasBruts }, { data: evenementsBruts }] = await Promise.all([
@@ -24,6 +31,9 @@ export default async function PageAdminGalerie() {
 
   const medias = (mediasBruts ?? []) as Media[];
   const evenements = (evenementsBruts ?? []) as Pick<Evenement, "id" | "titre">[];
+
+  // La photo à modifier est déjà dans la liste : inutile de la relire.
+  const enEdition = edition ? (medias.find((m) => m.id === edition) ?? null) : null;
 
   return (
     <div className="grid gap-8 xl:grid-cols-12">
@@ -78,6 +88,23 @@ export default async function PageAdminGalerie() {
                     </p>
 
                     <div className="mt-4 flex flex-wrap gap-2">
+                      <Link
+                        href={
+                          enEdition?.id === media.id
+                            ? "/admin/galerie"
+                            : `/admin/galerie?edition=${media.id}`
+                        }
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+                          enEdition?.id === media.id
+                            ? "bg-bleu-900 text-white hover:bg-bleu-800"
+                            : "border border-craie-300 text-bleu-800 hover:border-bleu-300",
+                        )}
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden />
+                        {enEdition?.id === media.id ? "En cours" : "Modifier"}
+                      </Link>
+
                       <form action={basculerPublicationMedia}>
                         <input type="hidden" name="id" value={media.id} />
                         <input type="hidden" name="publie" value={String(media.publie)} />
@@ -113,9 +140,27 @@ export default async function PageAdminGalerie() {
       </section>
 
       <section className="xl:col-span-5">
-        <h2 className="font-display text-xl font-semibold text-bleu-900">Ajouter une photo</h2>
-        <div className="mt-6 rounded-2xl border border-craie-300 bg-white p-6">
-          <FormulaireMedia evenements={evenements} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-xl font-semibold text-bleu-900">
+            {enEdition ? "Modifier la photo" : "Ajouter une photo"}
+          </h2>
+          {enEdition && (
+            <Link
+              href="/admin/galerie"
+              className="inline-flex items-center gap-1.5 rounded-full bg-bleu-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-bleu-800"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              Nouvelle
+            </Link>
+          )}
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-craie-300 bg-white p-6">
+          <FormulaireMedia
+            key={enEdition?.id ?? "nouvelle"}
+            evenements={evenements}
+            media={enEdition}
+          />
         </div>
       </section>
     </div>

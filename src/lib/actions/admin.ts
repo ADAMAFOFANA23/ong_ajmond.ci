@@ -325,6 +325,7 @@ export async function changerRole(
 /* --------------------------------------------------------------- Galerie */
 
 const schemaMedia = z.object({
+  id: z.string().optional().or(z.literal("")),
   titre: z.string().trim().min(3, "Titre obligatoire."),
   legende: z.string().trim().max(300).optional().or(z.literal("")),
   url: z.string().trim().url("Ajoutez une photo avant d'enregistrer."),
@@ -352,7 +353,7 @@ export async function enregistrerMedia(
   if (!supabase) return { statut: "erreur", message: MESSAGE_SUPABASE_ABSENT };
 
   const v = analyse.data;
-  const { error } = await supabase.from("medias").insert({
+  const valeurs = {
     titre: v.titre,
     legende: v.legende || null,
     url: v.url,
@@ -360,13 +361,21 @@ export async function enregistrerMedia(
     prise_le: v.prise_le || null,
     evenement_id: v.evenement_id || null,
     publie: v.publie === "on",
-  });
+  };
+
+  // Un identifiant présent signifie une modification, pas un ajout.
+  const { error } = v.id
+    ? await supabase.from("medias").update(valeurs).eq("id", v.id)
+    : await supabase.from("medias").insert(valeurs);
 
   if (error) return { statut: "erreur", message: `Enregistrement impossible : ${error.message}` };
 
   revalidatePath("/admin/galerie");
   revalidatePath("/galerie");
-  return { statut: "succes", message: "Photo ajoutée à la galerie." };
+  return {
+    statut: "succes",
+    message: v.id ? "Photo mise à jour." : "Photo ajoutée à la galerie.",
+  };
 }
 
 export async function basculerPublicationMedia(donnees: FormData): Promise<void> {

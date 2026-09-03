@@ -10,13 +10,23 @@ import {
   enregistrerMedia,
 } from "@/lib/actions/admin";
 import { CHAMPS_CONTENU, GROUPES_CONTENU } from "@/lib/contenus";
+import type { Article, Evenement, Media } from "@/lib/supabase/types";
 import { ETAT_INITIAL } from "@/lib/actions/etat";
 import { BoutonEnvoi, CaseACocher, Champ, Selecteur, Zone } from "./champs";
 import { ChampImage } from "./champ-image";
 import { Message } from "@/components/ui/primitives";
 
-export function FormulaireEvenement() {
+/**
+ * `datetime-local` attend « AAAA-MM-JJTHH:mm ». La base renvoie un horodatage
+ * ISO complet ; la Côte d'Ivoire étant à UTC+0, le tronquer suffit.
+ */
+function pourChampDateHeure(valeur: string | null | undefined): string | undefined {
+  return valeur ? valeur.slice(0, 16) : undefined;
+}
+
+export function FormulaireEvenement({ evenement }: { evenement?: Evenement | null }) {
   const [etat, action] = useActionState(enregistrerEvenement, ETAT_INITIAL);
+  const edition = Boolean(evenement);
 
   return (
     <form action={action} className="space-y-5" noValidate>
@@ -28,20 +38,58 @@ export function FormulaireEvenement() {
           nom="slug"
           label="Identifiant (URL)"
           required
+          readOnly={edition}
           placeholder="forum-lycee-x-2026"
-          aide="Minuscules, chiffres et tirets. Un identifiant existant met l'événement à jour."
+          defaultValue={evenement?.slug}
+          aide={
+            edition
+              ? "Verrouillé : le modifier créerait un doublon et casserait le lien public."
+              : "Minuscules, chiffres et tirets. Un identifiant existant met l'événement à jour."
+          }
           erreurs={etat.erreurs}
         />
-        <Champ nom="titre" label="Titre" required erreurs={etat.erreurs} />
+        <Champ
+          nom="titre"
+          label="Titre"
+          required
+          defaultValue={evenement?.titre}
+          erreurs={etat.erreurs}
+        />
       </div>
 
-      <Champ nom="chapo" label="Accroche" erreurs={etat.erreurs} />
-      <Zone nom="description" label="Description" rows={4} erreurs={etat.erreurs} />
+      <Champ
+        nom="chapo"
+        label="Accroche"
+        defaultValue={evenement?.chapo ?? ""}
+        erreurs={etat.erreurs}
+      />
+      <Zone
+        nom="description"
+        label="Description"
+        rows={4}
+        defaultValue={evenement?.description ?? ""}
+        erreurs={etat.erreurs}
+      />
 
       <div className="grid gap-5 sm:grid-cols-3">
-        <Champ nom="etablissement" label="Établissement" erreurs={etat.erreurs} />
-        <Champ nom="lieu" label="Lieu précis" erreurs={etat.erreurs} />
-        <Champ nom="ville" label="Ville" erreurs={etat.erreurs} />
+        <Champ
+          nom="etablissement"
+          label="Établissement"
+          defaultValue={evenement?.etablissement ?? ""}
+          erreurs={etat.erreurs}
+        />
+        <Champ
+          nom="lieu"
+          label="Lieu précis"
+          defaultValue={evenement?.lieu ?? ""}
+          erreurs={etat.erreurs}
+        />
+        <Champ
+          nom="ville"
+          label="Ville"
+          defaultValue={evenement?.ville ?? ""}
+          erreurs={etat.erreurs}
+        />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-3">
@@ -50,30 +98,52 @@ export function FormulaireEvenement() {
           label="Début"
           type="datetime-local"
           required
+          defaultValue={pourChampDateHeure(evenement?.debut_le)}
           erreurs={etat.erreurs}
         />
-        <Champ nom="fin_le" label="Fin" type="datetime-local" erreurs={etat.erreurs} />
-        <Champ nom="capacite" label="Capacité" type="number" min={0} erreurs={etat.erreurs} />
+        <Champ
+          nom="fin_le"
+          label="Fin"
+          type="datetime-local"
+          defaultValue={pourChampDateHeure(evenement?.fin_le)}
+          erreurs={etat.erreurs}
+        />
+        <Champ
+          nom="capacite"
+          label="Capacité"
+          type="number"
+          min={0}
+          defaultValue={evenement?.capacite ?? ""}
+          erreurs={etat.erreurs}
+        />
       </div>
 
       <ChampImage
         nom="image_url"
         label="Visuel de l'événement"
         dossier="evenements"
+        valeurInitiale={evenement?.image_url}
         aide="Facultatif. Sans image, un visuel dérivé de l'identifiant est utilisé."
       />
 
-      <CaseACocher nom="publie" erreurs={etat.erreurs} defaultChecked>
-        Publier immédiatement sur le site
+      <CaseACocher
+        nom="publie"
+        erreurs={etat.erreurs}
+        defaultChecked={evenement ? evenement.publie : true}
+      >
+        Publier sur le site
       </CaseACocher>
 
-      <BoutonEnvoi>Enregistrer l&apos;événement</BoutonEnvoi>
+      <BoutonEnvoi>
+        {edition ? "Mettre à jour l'événement" : "Créer l'événement"}
+      </BoutonEnvoi>
     </form>
   );
 }
 
-export function FormulaireArticle() {
+export function FormulaireArticle({ article }: { article?: Article | null }) {
   const [etat, action] = useActionState(enregistrerArticle, ETAT_INITIAL);
+  const edition = Boolean(article);
 
   return (
     <form action={action} className="space-y-5" noValidate>
@@ -85,13 +155,31 @@ export function FormulaireArticle() {
           nom="slug"
           label="Identifiant (URL)"
           required
+          readOnly={edition}
           placeholder="retour-forum-cocody"
+          defaultValue={article?.slug}
+          aide={
+            edition
+              ? "Verrouillé : le modifier créerait un doublon et casserait le lien public."
+              : undefined
+          }
           erreurs={etat.erreurs}
         />
-        <Champ nom="titre" label="Titre" required erreurs={etat.erreurs} />
+        <Champ
+          nom="titre"
+          label="Titre"
+          required
+          defaultValue={article?.titre}
+          erreurs={etat.erreurs}
+        />
       </div>
 
-      <Champ nom="chapo" label="Chapô" erreurs={etat.erreurs} />
+      <Champ
+        nom="chapo"
+        label="Chapô"
+        defaultValue={article?.chapo ?? ""}
+        erreurs={etat.erreurs}
+      />
 
       <Zone
         nom="contenu"
@@ -99,6 +187,7 @@ export function FormulaireArticle() {
         required
         rows={10}
         aide="Un paragraphe par ligne."
+        defaultValue={article?.contenu}
         erreurs={etat.erreurs}
       />
 
@@ -107,24 +196,34 @@ export function FormulaireArticle() {
           nom="categorie"
           label="Catégorie"
           required
-          defaultValue="Actualité"
+          defaultValue={article?.categorie ?? "Actualité"}
           erreurs={etat.erreurs}
         />
-        <Champ nom="auteur" label="Auteur" erreurs={etat.erreurs} />
+        <Champ
+          nom="auteur"
+          label="Auteur"
+          defaultValue={article?.auteur ?? ""}
+          erreurs={etat.erreurs}
+        />
       </div>
 
       <ChampImage
         nom="couverture_url"
         label="Image de couverture"
         dossier="articles"
+        valeurInitiale={article?.couverture_url}
         aide="Facultatif. Elle illustre la carte de l'article et l'en-tête de la page."
       />
 
-      <CaseACocher nom="publie" erreurs={etat.erreurs} defaultChecked>
-        Publier immédiatement
+      <CaseACocher
+        nom="publie"
+        erreurs={etat.erreurs}
+        defaultChecked={article ? article.publie : true}
+      >
+        Publier sur le site
       </CaseACocher>
 
-      <BoutonEnvoi>Enregistrer l&apos;article</BoutonEnvoi>
+      <BoutonEnvoi>{edition ? "Mettre à jour l'article" : "Créer l'article"}</BoutonEnvoi>
     </form>
   );
 }
@@ -212,34 +311,58 @@ export function FormulaireCotisation({
 
 export function FormulaireMedia({
   evenements,
+  media,
 }: {
   evenements: Array<{ id: string; titre: string }>;
+  media?: Media | null;
 }) {
   const [etat, action] = useActionState(enregistrerMedia, ETAT_INITIAL);
+  const edition = Boolean(media);
 
   return (
     <form action={action} className="space-y-5" noValidate>
       {etat.statut === "succes" && <Message ton="succes">{etat.message}</Message>}
       {etat.statut === "erreur" && etat.message && <Message ton="erreur">{etat.message}</Message>}
 
+      {media && <input type="hidden" name="id" value={media.id} />}
+
       <ChampImage
         nom="url"
         label="Photo"
         dossier="galerie"
+        valeurInitiale={media?.url}
         aide="Obligatoire. JPEG, PNG, WebP ou AVIF, 5 Mo maximum."
       />
 
-      <Champ nom="titre" label="Titre" required erreurs={etat.erreurs} />
-      <Champ nom="legende" label="Légende" erreurs={etat.erreurs} />
+      <Champ
+        nom="titre"
+        label="Titre"
+        required
+        defaultValue={media?.titre}
+        erreurs={etat.erreurs}
+      />
+      <Champ
+        nom="legende"
+        label="Légende"
+        defaultValue={media?.legende ?? ""}
+        erreurs={etat.erreurs}
+      />
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Champ nom="lieu" label="Lieu" erreurs={etat.erreurs} />
-        <Champ nom="prise_le" label="Prise le" type="date" erreurs={etat.erreurs} />
+        <Champ nom="lieu" label="Lieu" defaultValue={media?.lieu ?? ""} erreurs={etat.erreurs} />
+        <Champ
+          nom="prise_le"
+          label="Prise le"
+          type="date"
+          defaultValue={media?.prise_le ?? ""}
+          erreurs={etat.erreurs}
+        />
       </div>
 
       <Selecteur
         nom="evenement_id"
         label="Rattacher à un événement"
+        defaultValue={media?.evenement_id ?? ""}
         options={[
           { valeur: "", libelle: "Aucun" },
           ...evenements.map((evenement) => ({
@@ -250,11 +373,15 @@ export function FormulaireMedia({
         erreurs={etat.erreurs}
       />
 
-      <CaseACocher nom="publie" erreurs={etat.erreurs} defaultChecked>
+      <CaseACocher
+        nom="publie"
+        erreurs={etat.erreurs}
+        defaultChecked={media ? media.publie : true}
+      >
         Afficher dans la galerie publique
       </CaseACocher>
 
-      <BoutonEnvoi>Ajouter la photo</BoutonEnvoi>
+      <BoutonEnvoi>{edition ? "Mettre à jour la photo" : "Ajouter la photo"}</BoutonEnvoi>
     </form>
   );
 }
