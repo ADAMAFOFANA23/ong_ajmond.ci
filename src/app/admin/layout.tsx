@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Bell, LogOut, Mail, Search, Settings } from "lucide-react";
@@ -60,18 +61,28 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="flex min-h-screen flex-col bg-craie-100 lg:flex-row">
       {/* ------------------------------------------------- Rail (desktop) */}
       <aside className="sur-sombre hidden bg-bleu-950 lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex items-center gap-3 px-5 py-6">
-          <span
-            aria-hidden
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brique-500 font-display text-sm font-bold text-white"
-          >
-            AJ
-          </span>
-          <Link href="/" className="min-w-0">
-            <span className="block truncate font-display text-base font-semibold text-white">
-              {ORGANISATION.sigle}
+        <div className="px-5 py-6">
+          <Link href="/" className="flex items-center gap-3" aria-label="Accueil A.J.MOND-CI">
+            {/*
+              Le logo est bleu et rouge sur transparent : sur l'aplat nuit du
+              rail, il faut le poser sur un fond clair pour qu'il reste lisible.
+            */}
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white">
+              <Image
+                src="/brand/logo-ajmond-ci.svg"
+                alt=""
+                width={40}
+                height={40}
+                priority
+                className="h-8 w-8"
+              />
             </span>
-            <span className="block text-xs text-bleu-100/50">Administration</span>
+            <span className="min-w-0 leading-tight">
+              <span className="block truncate font-display text-base font-semibold text-white">
+                {ORGANISATION.sigle}
+              </span>
+              <span className="block text-xs text-bleu-100/50">Administration</span>
+            </span>
           </Link>
         </div>
 

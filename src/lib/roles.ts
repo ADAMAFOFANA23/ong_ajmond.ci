@@ -16,6 +16,7 @@ export const SECTIONS = [
   "inscriptions",
   "articles",
   "galerie",
+  "partenaires",
   "contenus",
   "messages",
   "roles",
@@ -61,8 +62,15 @@ export const ROLES: Record<
     nom: "Communication",
     organe: "Communication et informatique",
     description:
-      "Publie les actualités, les événements, la galerie et les contenus du site. N'accède ni aux données financières ni aux adhésions.",
-    sections: ["tableau-de-bord", "evenements", "articles", "galerie", "contenus"],
+      "Publie les actualités, les événements, la galerie, les partenaires et les contenus du site. N'accède ni aux données financières ni aux adhésions.",
+    sections: [
+      "tableau-de-bord",
+      "evenements",
+      "articles",
+      "galerie",
+      "partenaires",
+      "contenus",
+    ],
   },
 };
 

@@ -438,3 +438,94 @@ export async function enregistrerContenus(
   revalidatePath("/", "layout");
   return { statut: "succes", message: "Contenus du site mis à jour." };
 }
+
+/* ---------------------------------------------------------- Partenaires */
+
+const schemaPartenaire = z.object({
+  id: z.string().optional().or(z.literal("")),
+  nom: z.string().trim().min(3, "Nom obligatoire."),
+  type: z.enum(["etablissement", "technique", "institutionnel", "soutien"]),
+  logo_url: z.string().trim().url().optional().or(z.literal("")),
+  site_url: z.string().trim().url("Adresse invalide.").optional().or(z.literal("")),
+  ville: z.string().trim().max(80).optional().or(z.literal("")),
+  description: z.string().trim().max(400).optional().or(z.literal("")),
+  ordre: z.coerce.number().int().min(0).max(999).optional(),
+  publie: z.string().optional(),
+});
+
+export async function enregistrerPartenaire(
+  _etat: EtatFormulaire,
+  donnees: FormData,
+): Promise<EtatFormulaire> {
+  const analyse = schemaPartenaire.safeParse(Object.fromEntries(donnees));
+
+  if (!analyse.success) {
+    return {
+      statut: "erreur",
+      message: "Merci de corriger les champs signalés.",
+      erreurs: z.flattenError(analyse.error).fieldErrors as Record<string, string[]>,
+    };
+  }
+
+  const supabase = await clientGestion("partenaires");
+  if (!supabase) return { statut: "erreur", message: MESSAGE_SUPABASE_ABSENT };
+
+  const v = analyse.data;
+  const valeurs = {
+    nom: v.nom,
+    type: v.type,
+    logo_url: v.logo_url || null,
+    site_url: v.site_url || null,
+    ville: v.ville || null,
+    description: v.description || null,
+    ordre: v.ordre ?? 0,
+    publie: v.publie === "on",
+  };
+
+  const { error } = v.id
+    ? await supabase.from("partenaires").update(valeurs).eq("id", v.id)
+    : await supabase.from("partenaires").insert(valeurs);
+
+  if (error) {
+    // Le nom porte une contrainte d'unicité : le dire plutôt que d'afficher
+    // le message brut de Postgres.
+    return {
+      statut: "erreur",
+      message: error.code === "23505"
+        ? "Un partenaire porte déjà ce nom."
+        : `Enregistrement impossible : ${error.message}`,
+    };
+  }
+
+  revalidatePath("/admin/partenaires");
+  revalidatePath("/", "layout");
+  return {
+    statut: "succes",
+    message: v.id ? "Partenaire mis à jour." : "Partenaire ajouté.",
+  };
+}
+
+export async function basculerPublicationPartenaire(donnees: FormData): Promise<void> {
+  const supabase = await clientGestion("partenaires");
+  if (!supabase) return;
+
+  const id = String(donnees.get("id") ?? "");
+  const publie = donnees.get("publie") === "true";
+  if (!id) return;
+
+  await supabase.from("partenaires").update({ publie: !publie }).eq("id", id);
+  revalidatePath("/admin/partenaires");
+  revalidatePath("/", "layout");
+}
+
+export async function retirerPartenaire(donnees: FormData): Promise<void> {
+  const supabase = await clientGestion("partenaires");
+  if (!supabase) return;
+
+  const id = String(donnees.get("id") ?? "");
+  if (!id) return;
+
+  await supabase.from("partenaires").delete().eq("id", id);
+  revalidatePath("/admin/partenaires");
+  revalidatePath("/", "layout");
+}

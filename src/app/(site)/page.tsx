@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
@@ -10,7 +11,8 @@ import {
 } from "lucide-react";
 
 import { CadrePhoto } from "@/components/ui/cadre-photo";
-import { lireContenus } from "@/lib/donnees";
+import { lireContenus, listerPartenaires } from "@/lib/donnees";
+import type { Partenaire } from "@/lib/supabase/types";
 import { LienBouton } from "@/components/ui/primitives";
 import {
   CHIFFRES,
@@ -75,9 +77,59 @@ const PARCOURS = [
 
 const forum = PROGRAMMES[0];
 
+/**
+ * Une ligne de partenaire. Le logo n'apparaît que s'il existe : un cadre vide
+ * répété sur douze lignes ferait plus de mal qu'un simple nom.
+ */
+function LignePartenaire({ partenaire }: { partenaire: Partenaire }) {
+  const contenu = (
+    <>
+      {partenaire.logo_url && (
+        <span className="relative h-9 w-12 shrink-0">
+          <Image
+            src={partenaire.logo_url}
+            alt=""
+            fill
+            sizes="48px"
+            className="object-contain object-left"
+          />
+        </span>
+      )}
+      <span className="min-w-0">
+        <span className="block text-[15px] leading-snug text-bleu-900">{partenaire.nom}</span>
+        {partenaire.ville && (
+          <span className="mt-0.5 block text-xs text-bleu-800/55">{partenaire.ville}</span>
+        )}
+      </span>
+    </>
+  );
+
+  return (
+    <li className="border-b border-craie-300">
+      {partenaire.site_url ? (
+        <a
+          href={partenaire.site_url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="flex items-center gap-4 py-4 transition-colors hover:text-brique-700"
+        >
+          {contenu}
+        </a>
+      ) : (
+        <span className="flex items-center gap-4 py-4">{contenu}</span>
+      )}
+    </li>
+  );
+}
+
 export default async function PageAccueil() {
   // Surcharges saisies par le bureau ; à défaut, les textes du code.
-  const contenus = await lireContenus();
+  const [contenus, partenaires] = await Promise.all([lireContenus(), listerPartenaires()]);
+
+  // Table vide — base neuve ou migration non jouée : on retombe sur les
+  // listes livrées dans le code plutôt que d'afficher une section vide.
+  const etablissements = partenaires.filter((p) => p.type === "etablissement");
+  const autresPartenaires = partenaires.filter((p) => p.type !== "etablissement");
 
   return (
     <>
@@ -317,30 +369,38 @@ export default async function PageAccueil() {
                 Établissements partenaires
               </h3>
               <ul>
-                {ETABLISSEMENTS_PARTENAIRES.map((etablissement) => (
-                  <li
-                    key={etablissement}
-                    className="border-b border-craie-300 py-4 text-[15px] text-bleu-900"
-                  >
-                    {etablissement}
-                  </li>
-                ))}
+                {etablissements.length
+                  ? etablissements.map((partenaire) => (
+                      <LignePartenaire key={partenaire.id} partenaire={partenaire} />
+                    ))
+                  : ETABLISSEMENTS_PARTENAIRES.map((etablissement) => (
+                      <li
+                        key={etablissement}
+                        className="border-b border-craie-300 py-4 text-[15px] text-bleu-900"
+                      >
+                        {etablissement}
+                      </li>
+                    ))}
               </ul>
             </div>
 
             <div>
               <h3 className="border-b border-craie-300 pb-4 text-sm font-semibold uppercase tracking-[0.14em] text-bleu-800/60">
-                Partenaires techniques
+                Partenaires techniques et institutionnels
               </h3>
               <ul>
-                {PARTENAIRES_TECHNIQUES.map((partenaire) => (
-                  <li
-                    key={partenaire}
-                    className="border-b border-craie-300 py-4 text-[15px] text-bleu-900"
-                  >
-                    {partenaire}
-                  </li>
-                ))}
+                {autresPartenaires.length
+                  ? autresPartenaires.map((partenaire) => (
+                      <LignePartenaire key={partenaire.id} partenaire={partenaire} />
+                    ))
+                  : PARTENAIRES_TECHNIQUES.map((partenaire) => (
+                      <li
+                        key={partenaire}
+                        className="border-b border-craie-300 py-4 text-[15px] text-bleu-900"
+                      >
+                        {partenaire}
+                      </li>
+                    ))}
               </ul>
             </div>
           </div>

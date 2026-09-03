@@ -1,7 +1,7 @@
 import "server-only";
 
 import { creerClientServeur } from "@/lib/supabase/server";
-import type { Article, Cotisation, Evenement, Media } from "@/lib/supabase/types";
+import type { Article, Cotisation, Evenement, Media, Partenaire } from "@/lib/supabase/types";
 import { contenusParDefaut, fusionnerContenus, type Contenus } from "@/lib/contenus";
 
 /* ------------------------------------------------------------ Événements */
@@ -146,4 +146,24 @@ export async function lireContenus(): Promise<Contenus> {
 
   const { data } = await supabase.from("contenus_site").select("cle, valeur, image_url");
   return fusionnerContenus(data ?? null);
+}
+
+/**
+ * Partenaires publiés, groupés par type et ordonnés.
+ * Renvoie une liste vide plutôt que de lever : la page d'accueil retombe
+ * alors sur les listes livrées dans le code.
+ */
+export async function listerPartenaires(): Promise<Partenaire[]> {
+  const supabase = await creerClientServeur();
+  if (!supabase) return [];
+
+  const { data } = await supabase
+    .from("partenaires")
+    .select("*")
+    .eq("publie", true)
+    .order("type")
+    .order("ordre")
+    .order("nom");
+
+  return (data ?? []) as Partenaire[];
 }

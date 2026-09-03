@@ -8,9 +8,10 @@ import {
   enregistrerCotisation,
   enregistrerEvenement,
   enregistrerMedia,
+  enregistrerPartenaire,
 } from "@/lib/actions/admin";
 import { CHAMPS_CONTENU, GROUPES_CONTENU } from "@/lib/contenus";
-import type { Article, Evenement, Media } from "@/lib/supabase/types";
+import type { Article, Evenement, Media, Partenaire } from "@/lib/supabase/types";
 import { ETAT_INITIAL } from "@/lib/actions/etat";
 import { BoutonEnvoi, CaseACocher, Champ, Selecteur, Zone } from "./champs";
 import { ChampImage } from "./champ-image";
@@ -452,6 +453,101 @@ export function FormulaireContenus({ valeurs }: { valeurs: Record<string, string
       ))}
 
       <BoutonEnvoi>Enregistrer les contenus</BoutonEnvoi>
+    </form>
+  );
+}
+
+const TYPES_PARTENAIRE = [
+  { valeur: "etablissement", libelle: "Établissement scolaire" },
+  { valeur: "technique", libelle: "Partenaire technique" },
+  { valeur: "institutionnel", libelle: "Institution publique" },
+  { valeur: "soutien", libelle: "Soutien ou bailleur" },
+];
+
+export function FormulairePartenaire({ partenaire }: { partenaire?: Partenaire | null }) {
+  const [etat, action] = useActionState(enregistrerPartenaire, ETAT_INITIAL);
+  const edition = Boolean(partenaire);
+
+  return (
+    <form action={action} className="space-y-5" noValidate>
+      {etat.statut === "succes" && <Message ton="succes">{etat.message}</Message>}
+      {etat.statut === "erreur" && etat.message && <Message ton="erreur">{etat.message}</Message>}
+
+      {partenaire && <input type="hidden" name="id" value={partenaire.id} />}
+
+      <ChampImage
+        nom="logo_url"
+        label="Logo"
+        dossier="partenaires"
+        valeurInitiale={partenaire?.logo_url}
+        aide="Facultatif. Un fond transparent (PNG ou WebP) rend le mieux."
+      />
+
+      <Champ
+        nom="nom"
+        label="Nom"
+        required
+        defaultValue={partenaire?.nom}
+        aide="Il doit être unique : deux partenaires ne peuvent pas porter le même nom."
+        erreurs={etat.erreurs}
+      />
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Selecteur
+          nom="type"
+          label="Catégorie"
+          defaultValue={partenaire?.type ?? "etablissement"}
+          options={TYPES_PARTENAIRE}
+          erreurs={etat.erreurs}
+        />
+        <Champ
+          nom="ville"
+          label="Ville"
+          defaultValue={partenaire?.ville ?? ""}
+          erreurs={etat.erreurs}
+        />
+      </div>
+
+      <Champ
+        nom="site_url"
+        label="Site internet"
+        type="url"
+        placeholder="https://…"
+        defaultValue={partenaire?.site_url ?? ""}
+        erreurs={etat.erreurs}
+      />
+
+      <Zone
+        nom="description"
+        label="Description"
+        rows={3}
+        aide="Une phrase sur la nature du partenariat, facultative."
+        defaultValue={partenaire?.description ?? ""}
+        erreurs={etat.erreurs}
+      />
+
+      <Champ
+        nom="ordre"
+        label="Ordre d'affichage"
+        type="number"
+        min={0}
+        max={999}
+        defaultValue={partenaire?.ordre ?? 0}
+        aide="Les plus petits nombres passent en premier, à catégorie égale."
+        erreurs={etat.erreurs}
+      />
+
+      <CaseACocher
+        nom="publie"
+        erreurs={etat.erreurs}
+        defaultChecked={partenaire ? partenaire.publie : true}
+      >
+        Afficher sur le site public
+      </CaseACocher>
+
+      <BoutonEnvoi>
+        {edition ? "Mettre à jour le partenaire" : "Ajouter le partenaire"}
+      </BoutonEnvoi>
     </form>
   );
 }

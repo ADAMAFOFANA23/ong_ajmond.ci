@@ -7,6 +7,7 @@ export type RoleUtilisateur =
   | "communication"
   | "tresorerie"
   | "secretariat";
+export type TypePartenaire = "etablissement" | "technique" | "institutionnel" | "soutien";
 export type StatutCotisation = "a_payer" | "payee" | "en_retard";
 export type NatureCotisation = "adhesion" | "mensuelle" | "exceptionnelle" | "don";
 
@@ -118,5 +119,18 @@ export type MessageContact = {
   sujet: string;
   message: string;
   traite: boolean;
+  cree_le: string;
+};
+
+export type Partenaire = {
+  id: string;
+  nom: string;
+  type: TypePartenaire;
+  logo_url: string | null;
+  site_url: string | null;
+  ville: string | null;
+  description: string | null;
+  ordre: number;
+  publie: boolean;
   cree_le: string;
 };
