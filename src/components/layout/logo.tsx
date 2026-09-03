@@ -6,12 +6,20 @@ import { ORGANISATION } from "@/content/organisation";
 export function Logo({
   compact = false,
   inverse = false,
+  courant = false,
 }: {
   compact?: boolean;
   inverse?: boolean;
+  /** Vrai sur la page d'accueil : le logo en est le lien, il porte donc le repère. */
+  courant?: boolean;
 }) {
   return (
-    <Link href="/" className="group flex items-center gap-3" aria-label="Accueil A.J.MOND-CI">
+    <Link
+      href="/"
+      aria-current={courant ? "page" : undefined}
+      className="group flex items-center gap-3"
+      aria-label="Accueil A.J.MOND-CI"
+    >
       <Image
         src="/brand/logo-ajmond-ci.svg"
         alt=""

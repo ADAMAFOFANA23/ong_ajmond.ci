@@ -27,24 +27,44 @@ export function Entete({ connecte, admin }: { connecte: boolean; admin: boolean 
   return (
     <header className="sticky top-0 z-50 border-b border-bleu-100 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Logo />
+        <Logo courant={chemin === "/"} />
 
         <nav aria-label="Navigation principale" className="hidden lg:block">
           <ul className="flex items-center gap-1">
             {NAVIGATION.map((lien) => {
               const actif = chemin === lien.href || chemin.startsWith(`${lien.href}/`);
               return (
-                <li key={lien.href}>
+                /*
+                  L'élément occupe toute la hauteur de l'en-tête : le trait
+                  s'aligne alors sur sa bordure basse sans décalage arbitraire,
+                  et suivra une éventuelle modification de cette hauteur.
+                */
+                <li key={lien.href} className="relative flex h-20 items-center">
                   <Link
                     href={lien.href}
                     aria-current={actif ? "page" : undefined}
                     className={cn(
-                      "whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-colors",
-                      actif ? "bg-bleu-50 text-bleu-700" : "text-bleu-800/75 hover:text-bleu-700",
+                      "block whitespace-nowrap px-3 py-2 text-sm transition-colors",
+                      actif
+                        ? "font-semibold text-bleu-900"
+                        : "font-medium text-bleu-800/75 hover:text-bleu-900",
                     )}
                   >
                     {lien.label}
                   </Link>
+
+                  {/*
+                    Repère de page courante : un trait au ras de la bordure de
+                    l'en-tête, dans le rouge de signal. Il dit « vous êtes ici »
+                    d'un coup d'œil, là où la pastille pâle héritée de
+                    l'ancienne charte se confondait avec un simple survol.
+                  */}
+                  {actif && (
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-brique-500"
+                    />
+                  )}
                 </li>
               );
             })}
@@ -86,21 +106,38 @@ export function Entete({ connecte, admin }: { connecte: boolean; admin: boolean 
         <div id="menu-mobile" className="border-t border-bleu-100 bg-white lg:hidden">
           <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6">
             <ul className="flex flex-col gap-1">
-              {NAVIGATION.map((lien) => (
-                <li key={lien.href}>
-                  <Link
-                    href={lien.href}
-                    className="block rounded-xl px-4 py-3 text-base font-medium text-bleu-900 hover:bg-bleu-50"
-                  >
-                    {lien.label}
-                  </Link>
-                </li>
-              ))}
+              {NAVIGATION.map((lien) => {
+                const actif = chemin === lien.href || chemin.startsWith(`${lien.href}/`);
+                return (
+                  <li key={lien.href}>
+                    <Link
+                      href={lien.href}
+                      aria-current={actif ? "page" : undefined}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-xl px-4 py-3 text-base text-bleu-900 transition-colors",
+                        actif ? "bg-craie-100 font-semibold" : "font-medium hover:bg-craie-50",
+                      )}
+                    >
+                      {/* Même repère qu'en grand écran, ramené à un point. */}
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "h-1.5 w-1.5 shrink-0 rounded-full",
+                          actif ? "bg-brique-500" : "bg-transparent",
+                        )}
+                      />
+                      {lien.label}
+                    </Link>
+                  </li>
+                );
+              })}
               <li>
                 <Link
                   href={lienEspace}
-                  className="block rounded-xl px-4 py-3 text-base font-medium text-bleu-900 hover:bg-bleu-50"
+                  className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-base font-medium text-bleu-900 transition-colors hover:bg-craie-50"
                 >
+                  {/* Pastille vide : elle ne marque rien, elle aligne. */}
+                  <span aria-hidden className="h-1.5 w-1.5 shrink-0" />
                   {libelleEspace}
                 </Link>
               </li>
