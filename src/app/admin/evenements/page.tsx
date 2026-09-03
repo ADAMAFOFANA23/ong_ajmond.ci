@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 
 import { Badge, EtatVide, cn } from "@/components/ui/primitives";
 import { Vignette } from "@/components/ui/vignette";
 import { FormulaireEvenement } from "@/components/forms/formulaires-admin";
-import { basculerPublicationEvenement } from "@/lib/actions/admin";
+import { basculerPublicationEvenement, supprimerEvenement } from "@/lib/actions/admin";
 import { formaterPlage } from "@/lib/format";
 import { creerClientServeur } from "@/lib/supabase/server";
 import type { Evenement } from "@/lib/supabase/types";
@@ -12,16 +12,34 @@ import type { Evenement } from "@/lib/supabase/types";
 export default async function PageAdminEvenements({
   searchParams,
 }: {
-  searchParams: Promise<{ edition?: string }>;
+  searchParams: Promise<{ edition?: string; suppression?: string; desaccord?: string }>;
 }) {
-  const { edition } = await searchParams;
+  const { edition, suppression, desaccord } = await searchParams;
 
   const supabase = await creerClientServeur();
-  const { data } = supabase
-    ? await supabase.from("evenements").select("*").order("debut_le", { ascending: false })
-    : { data: null };
+
+  const [{ data }, { data: inscriptions }] = await Promise.all([
+    supabase
+      ? await supabase.from("evenements").select("*").order("debut_le", { ascending: false })
+      : Promise.resolve({ data: null }),
+    supabase
+      ? await supabase.from("inscriptions").select("evenement_id")
+      : Promise.resolve({ data: null }),
+  ]);
 
   const evenements = (data ?? []) as Evenement[];
+
+  // Nombre d'inscriptions par événement : c'est ce que la suppression
+  // emporterait, et c'est donc ce qu'il faut annoncer avant de la proposer.
+  const inscriptionsPar = new Map<string, number>();
+  for (const ligne of (inscriptions ?? []) as Array<{ evenement_id: string }>) {
+    inscriptionsPar.set(ligne.evenement_id, (inscriptionsPar.get(ligne.evenement_id) ?? 0) + 1);
+  }
+
+  const aSupprimer = suppression
+    ? (evenements.find((e) => e.id === suppression) ?? null)
+    : null;
+  const inscriptionsPerdues = aSupprimer ? (inscriptionsPar.get(aSupprimer.id) ?? 0) : 0;
 
   // L'événement à modifier est déjà dans la liste : inutile de le relire.
   const enEdition = edition ? (evenements.find((e) => e.slug === edition) ?? null) : null;
@@ -96,6 +114,13 @@ export default async function PageAdminEvenements({
                           {evenement.publie ? "Dépublier" : "Publier"}
                         </button>
                       </form>
+
+                      <Link
+                        href={`/admin/evenements?suppression=${evenement.id}`}
+                        className="rounded-lg px-3 py-1.5 text-xs font-semibold text-brique-600 transition-colors hover:bg-brique-50"
+                      >
+                        Supprimer
+                      </Link>
                     </div>
                   </li>
                 );
@@ -111,6 +136,63 @@ export default async function PageAdminEvenements({
       </section>
 
       <section className="xl:col-span-5">
+        {aSupprimer && (
+          <div className="mb-6 rounded-2xl border border-brique-300 bg-brique-50 p-5">
+            <h2 className="font-display text-lg font-semibold text-brique-800">
+              Supprimer cet événement ?
+            </h2>
+
+            <p className="mt-2 text-sm leading-relaxed text-bleu-900">
+              {aSupprimer.titre}
+            </p>
+
+            <p className="mt-3 text-sm leading-relaxed text-bleu-800/80">
+              {inscriptionsPerdues > 0 ? (
+                <>
+                  <strong className="chiffres font-semibold text-brique-700">
+                    {inscriptionsPerdues} inscription{inscriptionsPerdues > 1 ? "s" : ""}
+                  </strong>{" "}
+                  {inscriptionsPerdues > 1 ? "seront supprimées" : "sera supprimée"} avec lui.
+                  Cette action est définitive : les coordonnées des inscrits ne seront pas
+                  récupérables.
+                </>
+              ) : (
+                <>Aucune inscription n&apos;y est rattachée. Les photos de la galerie liées à cet
+                événement seront conservées, simplement détachées.</>
+              )}
+            </p>
+
+            {desaccord === "1" && (
+              <p className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-medium text-brique-700">
+                Le nombre d&apos;inscriptions a changé depuis l&apos;affichage de cet
+                avertissement. Rien n&apos;a été supprimé : vérifiez le nouveau décompte
+                ci-dessus avant de confirmer.
+              </p>
+            )}
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <form action={supprimerEvenement}>
+                <input type="hidden" name="id" value={aSupprimer.id} />
+                <input type="hidden" name="inscriptions" value={inscriptionsPerdues} />
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-brique-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brique-700"
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                  Supprimer définitivement
+                </button>
+              </form>
+
+              <Link
+                href="/admin/evenements"
+                className="inline-flex items-center rounded-lg border border-craie-300 bg-white px-4 py-2 text-xs font-semibold text-bleu-800 transition-colors hover:border-bleu-400"
+              >
+                Annuler
+              </Link>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-xl font-semibold text-bleu-900">
             {enEdition ? "Modifier l'événement" : "Créer un événement"}

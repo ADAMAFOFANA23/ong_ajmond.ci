@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { CHAMPS_CONTENU } from "@/lib/contenus";
@@ -218,6 +219,7 @@ export async function enregistrerCotisation(
   donnees: FormData,
 ): Promise<EtatFormulaire> {
   const schema = z.object({
+    id: z.string().optional().or(z.literal("")),
     profil_id: z.uuid(),
     nature: z.enum(["adhesion", "mensuelle", "exceptionnelle", "don"]),
     periode: z.string().trim().max(20).optional().or(z.literal("")),
@@ -237,16 +239,79 @@ export async function enregistrerCotisation(
   const supabase = await clientGestion("membres");
   if (!supabase) return { statut: "erreur", message: MESSAGE_SUPABASE_ABSENT };
 
-  const { error } = await supabase.from("cotisations").insert({
-    ...analyse.data,
-    periode: analyse.data.periode || null,
-    paye_le: analyse.data.statut === "payee" ? new Date().toISOString().slice(0, 10) : null,
-  });
+  const { id, ...champs } = analyse.data;
+
+  /*
+   * `paye_le` suit le statut : marquer « payée » date le paiement du jour,
+   * revenir en arrière efface la date plutôt que de laisser une trace fausse.
+   * Une correction ne conserve donc jamais une date orpheline.
+   */
+  const valeurs = {
+    ...champs,
+    periode: champs.periode || null,
+    paye_le: champs.statut === "payee" ? new Date().toISOString().slice(0, 10) : null,
+  };
+
+  const { error } = id
+    ? await supabase.from("cotisations").update(valeurs).eq("id", id)
+    : await supabase.from("cotisations").insert(valeurs);
 
   if (error) return { statut: "erreur", message: `Enregistrement impossible : ${error.message}` };
 
   revalidatePath("/admin/membres");
-  return { statut: "succes", message: "Cotisation enregistrée." };
+  revalidatePath("/admin");
+  revalidatePath("/espace-membre");
+  return {
+    statut: "succes",
+    message: id ? "Cotisation corrigée." : "Cotisation enregistrée.",
+  };
+}
+
+export async function supprimerCotisation(donnees: FormData): Promise<void> {
+  const supabase = await clientGestion("membres");
+  if (!supabase) return;
+
+  const id = String(donnees.get("id") ?? "");
+  if (!id) return;
+
+  await supabase.from("cotisations").delete().eq("id", id);
+  revalidatePath("/admin/membres");
+  revalidatePath("/admin");
+  revalidatePath("/espace-membre");
+}
+
+/**
+ * Supprime un événement et, en cascade, ses inscriptions.
+ *
+ * La contrainte `on delete cascade` de `inscriptions.evenement_id` emporte
+ * toutes les inscriptions sans avertissement côté base. L'écran impose donc
+ * une confirmation qui affiche leur nombre, et cette action exige que le
+ * nombre annoncé soit renvoyé : si une inscription est arrivée entre
+ * l'affichage et le clic, la suppression est refusée plutôt que d'emporter
+ * une donnée que personne n'a vue.
+ */
+export async function supprimerEvenement(donnees: FormData): Promise<void> {
+  const supabase = await clientGestion("evenements");
+  if (!supabase) return;
+
+  const id = String(donnees.get("id") ?? "");
+  const annonce = Number.parseInt(String(donnees.get("inscriptions") ?? ""), 10);
+  if (!id || !Number.isFinite(annonce)) return;
+
+  const { count } = await supabase
+    .from("inscriptions")
+    .select("*", { count: "exact", head: true })
+    .eq("evenement_id", id);
+
+  if ((count ?? 0) !== annonce) {
+    redirect(`/admin/evenements?suppression=${id}&desaccord=1`);
+  }
+
+  await supabase.from("evenements").delete().eq("id", id);
+
+  revalidatePath("/admin/evenements");
+  revalidatePath("/evenements");
+  redirect("/admin/evenements");
 }
 
 /* ---------------------------------------------------------------- Rôles */

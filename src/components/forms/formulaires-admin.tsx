@@ -11,7 +11,7 @@ import {
   enregistrerPartenaire,
 } from "@/lib/actions/admin";
 import { CHAMPS_CONTENU, GROUPES_CONTENU, type Contenus } from "@/lib/contenus";
-import type { Article, Evenement, Media, Partenaire } from "@/lib/supabase/types";
+import type { Article, Cotisation, Evenement, Media, Partenaire } from "@/lib/supabase/types";
 import { ETAT_INITIAL } from "@/lib/actions/etat";
 import { BoutonEnvoi, CaseACocher, Champ, Selecteur, Zone } from "./champs";
 import { ChampImage } from "./champ-image";
@@ -241,13 +241,17 @@ function periodeCourante(): string {
 
 export function FormulaireCotisation({
   membres,
+  cotisation,
 }: {
   membres: Array<{ id: string; libelle: string }>;
+  cotisation?: Cotisation | null;
 }) {
   const [etat, action] = useActionState(enregistrerCotisation, ETAT_INITIAL);
+  const edition = Boolean(cotisation);
 
   return (
     <form action={action} className="space-y-5" noValidate>
+      {cotisation && <input type="hidden" name="id" value={cotisation.id} />}
       {etat.statut === "succes" && <Message ton="succes">{etat.message}</Message>}
       {etat.statut === "erreur" && etat.message && <Message ton="erreur">{etat.message}</Message>}
 
@@ -255,6 +259,7 @@ export function FormulaireCotisation({
         nom="profil_id"
         label="Membre"
         required
+        defaultValue={cotisation?.profil_id}
         options={membres.map((membre) => ({ valeur: membre.id, libelle: membre.libelle }))}
         erreurs={etat.erreurs}
       />
@@ -263,7 +268,7 @@ export function FormulaireCotisation({
         <Selecteur
           nom="nature"
           label="Nature"
-          defaultValue="mensuelle"
+          defaultValue={cotisation?.nature ?? "mensuelle"}
           options={[
             // Le champ s'appelle déjà « Nature » : répéter « Cotisation » dans
             // chaque libellé les faisait dépasser de la colonne.
@@ -278,7 +283,7 @@ export function FormulaireCotisation({
           nom="periode"
           label="Période"
           type="month"
-          defaultValue={periodeCourante()}
+          defaultValue={cotisation?.periode ?? periodeCourante()}
           erreurs={etat.erreurs}
         />
       </div>
@@ -290,13 +295,13 @@ export function FormulaireCotisation({
           type="number"
           min={0}
           required
-          defaultValue={1000}
+          defaultValue={cotisation?.montant ?? 1000}
           erreurs={etat.erreurs}
         />
         <Selecteur
           nom="statut"
           label="Statut"
-          defaultValue="a_payer"
+          defaultValue={cotisation?.statut ?? "a_payer"}
           options={[
             { valeur: "a_payer", libelle: "À payer" },
             { valeur: "payee", libelle: "Payée" },
@@ -306,7 +311,9 @@ export function FormulaireCotisation({
         />
       </div>
 
-      <BoutonEnvoi>Enregistrer la cotisation</BoutonEnvoi>
+      <BoutonEnvoi>
+        {edition ? "Corriger la cotisation" : "Enregistrer la cotisation"}
+      </BoutonEnvoi>
     </form>
   );
 }
