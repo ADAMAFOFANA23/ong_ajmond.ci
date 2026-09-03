@@ -13,9 +13,13 @@ import type { EntreeFil } from "@/lib/donnees";
  * maintenant. Une page qui affiche la même phrase toute l'année ne donne aucune
  * raison de revenir ; un fil qui s'ouvre sur la prochaine intervention, si.
  *
- * Un panneau à la fois, et l'avance se fait par pas : on lit ces titres, on ne
- * les balaie pas comme les logos des partenaires. Elle s'arrête dès qu'on
- * survole, qu'on tabule ou qu'on pose le doigt — et ne reprend qu'après.
+ * Trois panneaux, pas davantage — le dernier événement et les deux dernières
+ * activités : la sélection se fait dans `listerFilActualite`.
+ *
+ * Un panneau à la fois, et l'avance se fait par pas de neuf secondes : on lit
+ * ces titres, on ne les balaie pas comme les logos des partenaires. Elle
+ * s'arrête dès qu'on survole, qu'on tabule ou qu'on pose le doigt — et ne
+ * reprend qu'après.
  */
 export function FilHero({ entrees, actions }: { entrees: EntreeFil[]; actions?: React.ReactNode }) {
   const elements = entrees.map((entree) => ({
@@ -102,7 +106,7 @@ export function FilHero({ entrees, actions }: { entrees: EntreeFil[]; actions?: 
       ton="sombre"
       plein
       derive={false}
-      intervalle={7000}
+      intervalle={9000}
       puces
       actions={actions}
       largeurCarte="w-full"

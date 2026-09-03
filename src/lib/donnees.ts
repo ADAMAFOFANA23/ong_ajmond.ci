@@ -186,13 +186,21 @@ export type EntreeFil = {
 };
 
 /**
- * Fil mêlant actualités et événements publiés.
+ * Fil d'ouverture : le dernier événement, puis les deux dernières activités.
  *
- * L'ordre n'est pas purement chronologique : ce qui n'a pas encore eu lieu
- * passe devant, du plus proche au plus lointain, parce que c'est ce sur quoi
- * un visiteur peut encore agir. Le reste suit, du plus récent au plus ancien.
+ * Ce n'est pas un flux chronologique mais une sélection : trois panneaux
+ * suffisent à dire ce que fait l'ONG, et un visiteur ne reste pas devant un
+ * carrousel de huit. L'événement ouvre parce que c'est lui qui appelle une
+ * présence ; les actualités suivent parce qu'elles se lisent.
+ *
+ * Le tri des événements par date décroissante fait remonter de lui-même celui
+ * qui n'a pas encore eu lieu, sa date étant la plus grande — la sélection reste
+ * juste sans avoir à traiter le futur à part.
  */
-export async function listerFilActualite(limite = 12): Promise<EntreeFil[]> {
+export async function listerFilActualite(
+  nbEvenements = 1,
+  nbActivites = 2,
+): Promise<EntreeFil[]> {
   const supabase = await creerClientServeur();
   if (!supabase) return [];
 
@@ -202,18 +210,19 @@ export async function listerFilActualite(limite = 12): Promise<EntreeFil[]> {
       .select("id, slug, titre, chapo, debut_le, image_url, etablissement, ville")
       .eq("publie", true)
       .order("debut_le", { ascending: false })
-      .limit(limite),
+      .limit(nbEvenements),
     supabase
       .from("articles")
       .select("id, slug, titre, chapo, publie_le, cree_le, couverture_url, categorie")
       .eq("publie", true)
       .order("publie_le", { ascending: false })
-      .limit(limite),
+      .limit(nbActivites),
   ]);
 
   const maintenant = Date.now();
 
-  const entrees: EntreeFil[] = [
+  // L'ordre du tableau est l'ordre d'affichage : événement d'abord.
+  return [
     ...((evenements ?? []) as Array<Record<string, string | null>>).map((e) => ({
       cle: `evenement-${e.id}`,
       type: "evenement" as const,
@@ -239,14 +248,4 @@ export async function listerFilActualite(limite = 12): Promise<EntreeFil[]> {
       lieu: a.categorie,
     })),
   ];
-
-  return entrees
-    .sort((a, b) => {
-      if (a.aVenir !== b.aVenir) return a.aVenir ? -1 : 1;
-      // À venir : le plus proche d'abord. Passé : le plus récent d'abord.
-      return a.aVenir
-        ? a.date.localeCompare(b.date)
-        : b.date.localeCompare(a.date);
-    })
-    .slice(0, limite);
 }
