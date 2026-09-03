@@ -214,3 +214,32 @@ select {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------- Carrousels */
+
+/*
+ * Piste de défilement horizontal à points d'ancrage. Le défilement natif est
+ * conservé — doigt, trackpad, clavier — et seule la barre est masquée : les
+ * boutons ne sont qu'un raccourci supplémentaire, jamais le seul moyen.
+ */
+.piste-defilante {
+  /*
+   * « proximity » et non « mandatory » : l'ancrage impératif entre en conflit
+   * avec le défilement animé déclenché par les flèches — le moteur ramène
+   * l'animation à son point de départ et le carrousel paraît figé. En
+   * proximité, l'alignement se fait quand l'utilisateur s'arrête près d'une
+   * carte, sans jamais contrarier un déplacement programmé.
+   */
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+}
+
+.piste-defilante::-webkit-scrollbar {
+  display: none;
+}
+
+.piste-defilante > * {
+  scroll-snap-align: start;
+}
