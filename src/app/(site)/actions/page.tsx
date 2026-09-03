@@ -12,7 +12,8 @@ import {
   TitreSection,
 } from "@/components/ui/primitives";
 import { Vignette } from "@/components/ui/vignette";
-import { CIBLES, PROGRAMMES, STRATEGIES } from "@/content/organisation";
+import { etapesDuDeroule, identifiantDepuis } from "@/lib/contenus";
+import { lireContenus } from "@/lib/donnees";
 
 export const metadata: Metadata = {
   title: "Nos actions",
@@ -20,7 +21,10 @@ export const metadata: Metadata = {
     "Forums d'échanges, sensibilisation en milieu scolaire, formation des encadreurs et réinsertion : les programmes de l'ONG A.J.MOND-CI.",
 };
 
-export default function PageActions() {
+export default async function PageActions() {
+  const contenus = await lireContenus();
+  const programmes = contenus.listes["programmes.liste"];
+
   return (
     <>
       <section className="motif-vagues border-b border-bleu-100 bg-sable-50">
@@ -45,16 +49,20 @@ export default function PageActions() {
 
       <Section className="bg-white">
         <ul className="space-y-16">
-          {PROGRAMMES.map((programme) => (
-            <li key={programme.slug} id={programme.slug} className="scroll-mt-28">
+          {programmes.map((programme) => {
+            const identifiant = identifiantDepuis(programme.titre);
+            const deroule = etapesDuDeroule(programme.deroule);
+
+            return (
+            <li key={identifiant} id={identifiant} className="scroll-mt-28">
               <div className="grid gap-8 lg:grid-cols-12">
                 <div className="lg:col-span-4">
                   {/*
-                    Visuel propre à chaque programme, dérivé de son slug :
+                    Visuel propre à chaque programme, dérivé de son titre :
                     l'ONG n'a pas encore de photothèque, mais aucune action ne
                     reste sans élément visuel. Voir src/components/ui/vignette.
                   */}
-                  <Vignette graine={programme.slug} className="aspect-[4/3] w-full" />
+                  <Vignette graine={identifiant} className="aspect-[4/3] w-full" />
                   <Badge ton="brique" className="mt-4">
                     {programme.edition}
                   </Badge>
@@ -69,14 +77,14 @@ export default function PageActions() {
                     {programme.description}
                   </p>
 
-                  {programme.deroule.length > 0 && (
+                  {deroule.length > 0 && (
                     <div className="mt-8 overflow-hidden rounded-2xl border border-bleu-100">
                       <p className="flex items-center gap-2 border-b border-bleu-100 bg-sable-50 px-5 py-3 text-xs font-semibold uppercase tracking-widest text-bleu-800/60">
                         <Clock className="h-4 w-4" aria-hidden />
                         Déroulé type d&apos;une journée
                       </p>
                       <ul className="divide-y divide-bleu-100">
-                        {programme.deroule.map((etape) => (
+                        {deroule.map((etape) => (
                           <li
                             key={etape.horaire}
                             className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-baseline sm:gap-6"
@@ -93,7 +101,8 @@ export default function PageActions() {
                 </div>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </Section>
 
@@ -105,12 +114,12 @@ export default function PageActions() {
               Sept étapes, du repérage à la réinsertion
             </h2>
             <ol className="mt-8 space-y-4">
-              {STRATEGIES.map((strategie, index) => (
-                <li key={strategie} className="flex gap-4">
+              {contenus.listes["statuts.strategies"].map((strategie, index) => (
+                <li key={strategie.texte} className="flex gap-4">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brique-500/15 font-display text-sm font-bold text-brique-400">
                     {index + 1}
                   </span>
-                  <span className="pt-1 text-sm leading-relaxed text-white/75">{strategie}</span>
+                  <span className="pt-1 text-sm leading-relaxed text-white/75">{strategie.texte}</span>
                 </li>
               ))}
             </ol>
@@ -122,7 +131,7 @@ export default function PageActions() {
               Qui accompagnons-nous ?
             </h2>
             <ul className="mt-8 space-y-4">
-              {CIBLES.map((cible) => (
+              {contenus.listes["statuts.cibles"].map((cible) => (
                 <li key={cible.titre} className="rounded-2xl border border-white/10 bg-white/5 p-6">
                   <h3 className="font-display text-base font-semibold text-white">{cible.titre}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-white/65">{cible.detail}</p>

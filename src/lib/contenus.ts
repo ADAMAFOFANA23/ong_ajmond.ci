@@ -1,14 +1,23 @@
 import {
   CHIFFRES,
+  CIBLES,
   COTISATIONS,
   HISTORIQUE,
   MISSIONS,
   OBJECTIF_GENERAL,
+  OBJECTIFS_SPECIFIQUES,
+  ORGANES,
   ORGANISATION,
   PROGRAMMES,
+  STRATEGIES,
   TYPES_MEMBRES,
   VISION,
 } from "@/content/organisation";
+
+/** Une étape par ligne, « horaire | intitulé ». */
+function derouleEnTexte(deroule: Array<{ horaire: string; intitule: string }>): string {
+  return deroule.map((etape) => `${etape.horaire} | ${etape.intitule}`).join("\n");
+}
 
 /**
  * Contenus du site modifiables depuis l'espace de gestion.
@@ -81,13 +90,6 @@ export const CHAMPS_CONTENU: ChampContenu[] = [
     type: "image",
     aide: "Format paysage, 1400 × 900 px.",
     defaut: "",
-  },
-  {
-    cle: "accueil.forum_description",
-    groupe: "Page d'accueil",
-    label: "Présentation du Forum",
-    type: "long",
-    defaut: PROGRAMMES[0].description,
   },
   {
     cle: "accueil.contact_titre",
@@ -166,6 +168,108 @@ export const CHAMPS_CONTENU: ChampContenu[] = [
       { nom: "description", label: "Description", type: "long" },
     ],
     lignesParDefaut: TYPES_MEMBRES.map((t) => ({ nom: t.nom, description: t.description })),
+  },
+
+  {
+    cle: "statuts.vision_titre",
+    groupe: "Contenus statutaires",
+    label: "Vision — titre",
+    type: "texte",
+    aide: "Affiché sur la page « L'ONG ». Le bandeau d'accueil a son propre titre.",
+    defaut: VISION.titre,
+  },
+  {
+    cle: "statuts.vision_texte",
+    groupe: "Contenus statutaires",
+    label: "Vision — texte",
+    type: "long",
+    defaut: VISION.texte,
+  },
+  {
+    cle: "statuts.objectifs_specifiques",
+    groupe: "Contenus statutaires",
+    label: "Objectifs spécifiques",
+    type: "liste",
+    defaut: "",
+    colonnes: [{ nom: "texte", label: "Objectif", type: "long" }],
+    lignesParDefaut: OBJECTIFS_SPECIFIQUES.map((texte) => ({ texte })),
+  },
+  {
+    cle: "statuts.strategies",
+    groupe: "Contenus statutaires",
+    label: "Stratégies d'intervention",
+    type: "liste",
+    aide: "Affichées numérotées dans l'ordre de la liste, sur « L'ONG » et « Nos actions ».",
+    defaut: "",
+    colonnes: [{ nom: "texte", label: "Étape", type: "texte" }],
+    lignesParDefaut: STRATEGIES.map((texte) => ({ texte })),
+  },
+  {
+    cle: "statuts.cibles",
+    groupe: "Contenus statutaires",
+    label: "Bénéficiaires",
+    type: "liste",
+    defaut: "",
+    colonnes: [
+      { nom: "titre", label: "Public", type: "texte" },
+      { nom: "detail", label: "Précision", type: "long" },
+    ],
+    lignesParDefaut: CIBLES.map((c) => ({ titre: c.titre, detail: c.detail })),
+  },
+  {
+    cle: "statuts.organes",
+    groupe: "Contenus statutaires",
+    label: "Organes statutaires",
+    type: "liste",
+    defaut: "",
+    colonnes: [
+      { nom: "nom", label: "Organe", type: "texte" },
+      { nom: "role", label: "Rôle", type: "long" },
+    ],
+    lignesParDefaut: ORGANES.map((o) => ({ nom: o.nom, role: o.role })),
+  },
+  {
+    cle: "identite.cadre_legal",
+    groupe: "Contenus statutaires",
+    label: "Cadre légal",
+    type: "long",
+    defaut: ORGANISATION.cadreLegal,
+  },
+  {
+    cle: "identite.presidence",
+    groupe: "Contenus statutaires",
+    label: "Présidence",
+    type: "texte",
+    defaut: ORGANISATION.presidente,
+  },
+
+  /* ------------------------------------------------------------ Programmes */
+  {
+    cle: "programmes.liste",
+    groupe: "Programmes",
+    label: "Programmes de l'ONG",
+    type: "liste",
+    aide: "Le premier programme alimente aussi le bloc « Forum » de la page d'accueil.",
+    defaut: "",
+    colonnes: [
+      { nom: "titre", label: "Titre", type: "texte" },
+      { nom: "accroche", label: "Accroche", type: "texte" },
+      { nom: "edition", label: "Édition ou période", type: "texte" },
+      { nom: "description", label: "Description", type: "long" },
+      {
+        nom: "deroule",
+        label: "Déroulé",
+        type: "long",
+        aide: "Une étape par ligne, sous la forme « 07h00 – 07h30 | Mise en place ». Laisser vide si le programme n'a pas d'horaire.",
+      },
+    ],
+    lignesParDefaut: PROGRAMMES.map((p) => ({
+      titre: p.titre,
+      accroche: p.accroche,
+      edition: p.edition,
+      description: p.description,
+      deroule: derouleEnTexte(p.deroule),
+    })),
   },
 
   /* ------------------------------------------------------------ Cotisations */
@@ -287,4 +391,37 @@ export function fusionnerContenus(
 export function nombreContenu(contenus: Contenus, cle: string, repli: number): number {
   const brut = Number.parseInt(contenus.textes[cle] ?? "", 10);
   return Number.isFinite(brut) ? brut : repli;
+}
+
+/** Étapes d'un programme, une par ligne : « horaire | intitulé ». */
+export function etapesDuDeroule(brut: string | undefined): Array<{ horaire: string; intitule: string }> {
+  if (!brut) return [];
+
+  return brut
+    .split("\n")
+    .map((ligne) => ligne.trim())
+    .filter(Boolean)
+    .map((ligne) => {
+      const separateur = ligne.indexOf("|");
+      if (separateur === -1) return { horaire: "", intitule: ligne };
+      return {
+        horaire: ligne.slice(0, separateur).trim(),
+        intitule: ligne.slice(separateur + 1).trim(),
+      };
+    });
+}
+
+/**
+ * Identifiant stable dérivé d'un intitulé : sert d'ancre dans l'URL et de
+ * graine au visuel. Les programmes n'ont plus de `slug` propre depuis qu'ils
+ * sont éditables — le titre en tient lieu.
+ */
+export function identifiantDepuis(intitule: string): string {
+  return intitule
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 }

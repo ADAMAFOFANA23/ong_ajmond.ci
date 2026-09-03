@@ -14,7 +14,7 @@ import {
   CarrouselPartenaires,
   type CartePartenaire,
 } from "@/components/sections/carrousel-partenaires";
-import { nombreContenu } from "@/lib/contenus";
+import { etapesDuDeroule, nombreContenu } from "@/lib/contenus";
 import { lireContenus, listerPartenaires } from "@/lib/donnees";
 import type { Partenaire } from "@/lib/supabase/types";
 import { LienBouton } from "@/components/ui/primitives";
@@ -23,7 +23,6 @@ import {
   ETABLISSEMENTS_PARTENAIRES,
   ORGANISATION,
   PARTENAIRES_TECHNIQUES,
-  PROGRAMMES,
   VISION,
 } from "@/content/organisation";
 
@@ -74,7 +73,6 @@ const PARCOURS = [
   },
 ];
 
-const forum = PROGRAMMES[0];
 
 export default async function PageAccueil() {
   // Surcharges saisies par le bureau ; à défaut, les textes du code.
@@ -93,6 +91,11 @@ export default async function PageAccueil() {
 
   const depuisNoms = (noms: readonly string[]): CartePartenaire[] =>
     noms.map((nom) => ({ cle: nom, nom }));
+
+  // Le premier programme alimente le bloc « Forum » ; il reste éditable au
+  // même endroit que les autres, dans la liste des programmes.
+  const forum = contenus.listes["programmes.liste"][0] ?? {};
+  const deroule = etapesDuDeroule(forum.deroule);
 
   const adhesion = nombreContenu(contenus, "cotisation.adhesion", COTISATIONS.adhesion);
   const mensuelle = nombreContenu(contenus, "cotisation.mensuelle", COTISATIONS.mensuelle);
@@ -282,7 +285,7 @@ export default async function PageAccueil() {
                 {forum.titre}
               </h2>
               <p className="mt-6 max-w-[65ch] text-lg leading-relaxed text-bleu-100/80">
-                {contenus.textes["accueil.forum_description"]}
+                {forum.description}
               </p>
 
               <CadrePhoto
@@ -301,7 +304,7 @@ export default async function PageAccueil() {
                 Déroulé d&apos;une matinée
               </h3>
               <ol>
-                {forum.deroule.map((etape) => (
+                {deroule.map((etape) => (
                   <li
                     key={etape.horaire}
                     className="ligne-remplie grid grid-cols-[8.5rem_1fr] items-baseline gap-4 border-b border-white/12 px-2 py-4"

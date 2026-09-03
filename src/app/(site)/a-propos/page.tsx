@@ -9,18 +9,9 @@ import {
   Surtitre,
   TitreSection,
 } from "@/components/ui/primitives";
-import {
-  COTISATIONS,
-  HISTORIQUE,
-  OBJECTIFS_SPECIFIQUES,
-  OBJECTIF_GENERAL,
-  ORGANES,
-  ORGANISATION,
-  PARTENAIRES_TECHNIQUES,
-  STRATEGIES,
-  TYPES_MEMBRES,
-  VISION,
-} from "@/content/organisation";
+import { COTISATIONS, ORGANISATION } from "@/content/organisation";
+import { nombreContenu } from "@/lib/contenus";
+import { lireContenus, listerPartenaires } from "@/lib/donnees";
 
 export const metadata: Metadata = {
   title: "L'ONG",
@@ -28,18 +19,26 @@ export const metadata: Metadata = {
     "Statuts, vision, objectifs, organes et fonctionnement de l'ONG Amie des Jeunes du Monde de Côte d'Ivoire.",
 };
 
-const IDENTITE = [
-  { cle: "Dénomination", valeur: ORGANISATION.nom },
-  { cle: "Sigle", valeur: ORGANISATION.sigle },
-  { cle: "Nature juridique", valeur: ORGANISATION.nature },
-  { cle: "Cadre légal", valeur: ORGANISATION.cadreLegal },
-  { cle: "Siège social", valeur: ORGANISATION.siege },
-  { cle: "Adresse postale", valeur: ORGANISATION.boitePostale },
-  { cle: "Durée", valeur: "Illimitée" },
-  { cle: "Présidence", valeur: ORGANISATION.presidente },
-];
+export default async function PageAPropos() {
+  const [contenus, partenaires] = await Promise.all([lireContenus(), listerPartenaires()]);
 
-export default function PageAPropos() {
+  const identite = [
+    { cle: "Dénomination", valeur: ORGANISATION.nom },
+    { cle: "Sigle", valeur: ORGANISATION.sigle },
+    { cle: "Nature juridique", valeur: ORGANISATION.nature },
+    { cle: "Cadre légal", valeur: contenus.textes["identite.cadre_legal"] },
+    { cle: "Siège social", valeur: contenus.textes["organisation.siege"] },
+    { cle: "Adresse postale", valeur: contenus.textes["organisation.boite_postale"] },
+    { cle: "Durée", valeur: "Illimitée" },
+    { cle: "Présidence", valeur: contenus.textes["identite.presidence"] },
+  ];
+
+  // La page listait les partenaires techniques ; ils vivent maintenant en base.
+  const partenairesTechniques = partenaires.filter((p) => p.type !== "etablissement");
+
+  const adhesion = nombreContenu(contenus, "cotisation.adhesion", COTISATIONS.adhesion);
+  const mensuelle = nombreContenu(contenus, "cotisation.mensuelle", COTISATIONS.mensuelle);
+
   return (
     <>
       <section className="motif-vagues border-b border-bleu-100 bg-sable-50">
@@ -73,7 +72,7 @@ export default function PageAPropos() {
           </div>
 
           <dl className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:col-span-8">
-            {IDENTITE.map((ligne) => (
+            {identite.map((ligne) => (
               <div key={ligne.cle} className="border-t border-bleu-100 pt-4">
                 <dt className="text-xs font-semibold uppercase tracking-widest text-bleu-800/50">
                   {ligne.cle}
@@ -91,33 +90,36 @@ export default function PageAPropos() {
           <div>
             <Surtitre className="text-brique-400">Vision</Surtitre>
             <h2 className="text-2xl font-bold leading-tight text-white sm:text-3xl">
-              {VISION.titre}
+              {contenus.textes["statuts.vision_titre"]}
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-white/70">{VISION.texte}</p>
+            <p className="mt-4 text-base leading-relaxed text-white/70">{contenus.textes["statuts.vision_texte"]}</p>
 
             <h3 className="mt-10 font-display text-lg font-semibold text-white">Objectif général</h3>
-            <p className="mt-3 text-sm leading-relaxed text-white/70">{OBJECTIF_GENERAL}</p>
+            <p className="mt-3 text-sm leading-relaxed text-white/70">{contenus.textes["statuts.objectif_general"]}</p>
           </div>
 
           <div>
             <h3 className="font-display text-lg font-semibold text-white">Objectifs spécifiques</h3>
             <ul className="mt-4 space-y-3">
-              {OBJECTIFS_SPECIFIQUES.map((objectif) => (
-                <li key={objectif} className="flex gap-3 text-sm leading-relaxed text-white/75">
+              {contenus.listes["statuts.objectifs_specifiques"].map((objectif) => (
+                <li
+                  key={objectif.texte}
+                  className="flex gap-3 text-sm leading-relaxed text-white/75"
+                >
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-brique-400" aria-hidden />
-                  {objectif}
+                  {objectif.texte}
                 </li>
               ))}
             </ul>
 
             <h3 className="mt-10 font-display text-lg font-semibold text-white">Nos stratégies</h3>
             <ul className="mt-4 flex flex-wrap gap-2">
-              {STRATEGIES.map((strategie) => (
+              {contenus.listes["statuts.strategies"].map((strategie) => (
                 <li
-                  key={strategie}
+                  key={strategie.texte}
                   className="rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-white/80"
                 >
-                  {strategie}
+                  {strategie.texte}
                 </li>
               ))}
             </ul>
@@ -138,7 +140,7 @@ export default function PageAPropos() {
         </div>
 
         <ol className="mt-12 grid gap-5 md:grid-cols-2">
-          {ORGANES.map((organe, index) => (
+          {contenus.listes["statuts.organes"].map((organe, index) => (
             <li key={organe.nom} className="rounded-2xl border border-bleu-100 bg-sable-50/60 p-6">
               <span className="font-display text-xs font-bold text-brique-500">
                 {String(index + 1).padStart(2, "0")}
@@ -167,23 +169,23 @@ export default function PageAPropos() {
                 <div className="flex items-baseline justify-between gap-4">
                   <dt className="text-bleu-800/70">Droit d&apos;adhésion</dt>
                   <dd className="font-display text-lg font-bold text-bleu-700">
-                    {COTISATIONS.adhesion.toLocaleString("fr-FR")} {COTISATIONS.devise}
+                    {adhesion.toLocaleString("fr-FR")} {COTISATIONS.devise}
                   </dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-4">
                   <dt className="text-bleu-800/70">Cotisation mensuelle</dt>
                   <dd className="font-display text-lg font-bold text-bleu-700">
-                    {COTISATIONS.mensuelle.toLocaleString("fr-FR")} {COTISATIONS.devise}
+                    {mensuelle.toLocaleString("fr-FR")} {COTISATIONS.devise}
                   </dd>
                 </div>
               </dl>
-              <p className="mt-4 text-xs leading-relaxed text-bleu-800/60">{COTISATIONS.note}</p>
+              <p className="mt-4 text-xs leading-relaxed text-bleu-800/60">{contenus.textes["cotisation.note"]}</p>
             </div>
           </div>
 
           <ul className="space-y-4 lg:col-span-7">
-            {TYPES_MEMBRES.map((type) => (
-              <li key={type.cle} className="rounded-2xl border border-bleu-100 bg-white p-6">
+            {contenus.listes["statuts.types_membres"].map((type) => (
+              <li key={type.nom} className="rounded-2xl border border-bleu-100 bg-white p-6">
                 <h3 className="font-display text-lg font-semibold text-bleu-900">{type.nom}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-bleu-800/70">{type.description}</p>
               </li>
@@ -200,7 +202,7 @@ export default function PageAPropos() {
         </div>
 
         <ol className="mt-12 space-y-0 border-l-2 border-bleu-100 pl-6 sm:pl-8">
-          {HISTORIQUE.map((etape) => (
+          {contenus.listes["statuts.historique"].map((etape) => (
             <li key={etape.annee} className="relative pb-10 last:pb-0">
               <span
                 aria-hidden
@@ -229,12 +231,17 @@ export default function PageAPropos() {
         </div>
 
         <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PARTENAIRES_TECHNIQUES.map((partenaire) => (
+          {partenairesTechniques.map((partenaire) => (
             <li
-              key={partenaire}
+              key={partenaire.id}
               className="rounded-2xl border border-bleu-100 bg-white p-6 text-sm font-medium leading-relaxed text-bleu-900"
             >
-              {partenaire}
+              {partenaire.nom}
+              {partenaire.ville && (
+                <span className="mt-1 block text-xs font-normal text-bleu-800/55">
+                  {partenaire.ville}
+                </span>
+              )}
             </li>
           ))}
         </ul>
