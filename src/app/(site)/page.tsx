@@ -14,9 +14,9 @@ import {
   CarrouselPartenaires,
   type CartePartenaire,
 } from "@/components/sections/carrousel-partenaires";
-import { nombreContenu } from "@/lib/contenus";
+import { FilHero } from "@/components/sections/fil-hero";
+import { etapesDuDeroule, nombreContenu } from "@/lib/contenus";
 import { lireContenus, listerFilActualite, listerPartenaires } from "@/lib/donnees";
-import { FilActualite } from "@/components/sections/fil-actualite";
 import type { Partenaire } from "@/lib/supabase/types";
 import { LienBouton } from "@/components/ui/primitives";
 import {
@@ -97,6 +97,11 @@ export default async function PageAccueil() {
   const depuisNoms = (noms: readonly string[]): CartePartenaire[] =>
     noms.map((nom) => ({ cle: nom, nom }));
 
+  // Le premier programme alimente le bloc « Forum » ; il reste éditable au
+  // même endroit que les autres, dans la liste des programmes.
+  const forum = contenus.listes["programmes.liste"][0] ?? {};
+  const deroule = etapesDuDeroule(forum.deroule);
+
   const adhesion = nombreContenu(contenus, "cotisation.adhesion", COTISATIONS.adhesion);
   const mensuelle = nombreContenu(contenus, "cotisation.mensuelle", COTISATIONS.mensuelle);
 
@@ -107,60 +112,92 @@ export default async function PageAccueil() {
     <>
       {/* ------------------------------------------------------------ Hero */}
       <section className="sur-sombre relative bg-bleu-950 text-white">
-        <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 pb-28 pt-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16 lg:px-8 lg:pb-36 lg:pt-24">
-          <div>
-            <span
-              aria-hidden
-              className="ouverture-filet block h-px w-24 bg-brique-500"
-            />
+        <div className="mx-auto w-full max-w-7xl px-4 pb-28 pt-14 sm:px-6 lg:px-8 lg:pb-32 lg:pt-20">
+          <span aria-hidden className="ouverture-filet block h-px w-24 bg-brique-500" />
 
-            <h1 className="ouverture-titre ouverture-delai-1 mt-8 font-display text-[clamp(2.75rem,7vw,5.5rem)] font-light leading-[0.98] tracking-[-0.03em]">
-              {contenus.textes["accueil.titre"]}
-            </h1>
+          <h1 className="ouverture-titre ouverture-delai-1 mt-8 max-w-[22ch] font-display text-[clamp(2.25rem,4.6vw,3.75rem)] font-light leading-[1.01] tracking-[-0.03em]">
+            {contenus.textes["accueil.titre"]}
+          </h1>
 
-            <p className="ouverture-titre ouverture-delai-2 mt-7 max-w-[62ch] text-lg leading-relaxed text-bleu-100/80">
-              {contenus.textes["accueil.chapo"]}
-            </p>
+          <div className="ouverture-titre ouverture-delai-2 mt-10 lg:mt-12">
+            {fil.length ? (
+              <FilHero
+                entrees={fil}
+                actions={
+                  <>
+                    <Link
+                      href="/evenements"
+                      className="lien-souligne text-xs font-medium text-bleu-100/70 hover:text-white"
+                    >
+                      Agenda complet
+                    </Link>
+                    <Link
+                      href="/actualites"
+                      className="lien-souligne mr-2 text-xs font-medium text-bleu-100/70 hover:text-white"
+                    >
+                      Toutes les actualités
+                    </Link>
+                  </>
+                }
+              />
+            ) : (
+              /*
+                Rien de publié : le hero reprend sa forme de présentation plutôt
+                que d'ouvrir le site sur un cadre vide.
+              */
+              <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16">
+                <div>
+                  <p className="max-w-[62ch] text-lg leading-relaxed text-bleu-100/80">
+                    {contenus.textes["accueil.chapo"]}
+                  </p>
 
-            <div className="mt-10 flex flex-wrap items-center gap-3">
-              <LienBouton href="/adhesion" variante="accent">
-                Adhérer à l&apos;ONG
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </LienBouton>
-              <LienBouton
-                href="/actions"
-                variante="fantome"
-                className="border border-white/25 text-white hover:bg-white/10"
-              >
-                Découvrir nos actions
-              </LienBouton>
-            </div>
+                  <div className="mt-10 flex flex-wrap items-center gap-3">
+                    <LienBouton href="/adhesion" variante="accent">
+                      Adhérer à l&apos;ONG
+                      <ArrowRight className="h-4 w-4" aria-hidden />
+                    </LienBouton>
+                    <LienBouton
+                      href="/actions"
+                      variante="fantome"
+                      className="border border-white/25 text-white hover:bg-white/10"
+                    >
+                      Découvrir nos actions
+                    </LienBouton>
+                  </div>
+                </div>
 
-            <dl className="mt-14 grid gap-x-8 gap-y-4 border-t border-white/15 pt-6 text-sm sm:grid-cols-3">
-              <div>
-                <dt className="text-bleu-100/55">Siège</dt>
-                <dd className="mt-1 font-medium">{contenus.textes["organisation.siege"]}</dd>
+                <CadrePhoto
+                  ton="sombre"
+                  largeur={1200}
+                  hauteur={1500}
+                  src={contenus.textes["accueil.photo_hero"] || undefined}
+                  alt="Intervention de l'ONG dans un établissement"
+                  sujet="Portrait vertical d'une intervention en lycée : élèves en atelier ou intervenant face à une classe."
+                  className="aspect-[4/5] w-full"
+                />
               </div>
-              <div>
-                <dt className="text-bleu-100/55">Statut</dt>
-                <dd className="mt-1 font-medium">{ORGANISATION.nature}</dd>
-              </div>
-              <div>
-                <dt className="text-bleu-100/55">Active depuis</dt>
-                <dd className="chiffres mt-1 font-medium">2019</dd>
-              </div>
-            </dl>
+            )}
           </div>
 
-          <CadrePhoto
-            ton="sombre"
-            largeur={1200}
-            hauteur={1500}
-            src={contenus.textes["accueil.photo_hero"] || undefined}
-            alt="Intervention de l'ONG dans un établissement"
-            sujet="Portrait vertical d'une intervention en lycée : élèves en atelier ou intervenant face à une classe."
-            className="aspect-[4/5] w-full lg:aspect-[4/5]"
-          />
+          {/*
+            Sous un panneau qui change, l'ancrage institutionnel tient en une
+            ligne : trois colonnes ajouteraient un bloc là où il ne faut qu'une
+            signature.
+          */}
+          <dl className="mt-12 flex flex-wrap items-baseline gap-x-8 gap-y-2 border-t border-white/15 pt-5 text-sm">
+            <div className="flex items-baseline gap-2">
+              <dt className="text-bleu-100/55">Siège</dt>
+              <dd className="font-medium">{contenus.textes["organisation.siege"]}</dd>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <dt className="text-bleu-100/55">Statut</dt>
+              <dd className="font-medium">{ORGANISATION.nature}</dd>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <dt className="text-bleu-100/55">Active depuis</dt>
+              <dd className="chiffres font-medium">2019</dd>
+            </div>
+          </dl>
         </div>
       </section>
 
@@ -275,53 +312,55 @@ export default async function PageAccueil() {
         </div>
       </section>
 
-      {/* ------------------------------------ Actualités et événements */}
+      {/* ---------------------------------------------------------- Forum */}
       <section className="sur-sombre bg-bleu-950 py-20 text-white lg:py-28">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div className="max-w-2xl">
-              <h2 className="font-display text-[clamp(2rem,3.5vw,3.25rem)] font-light leading-[1.05]">
-                Ce que fait l&apos;ONG en ce moment
+          <div className="grid gap-12 lg:grid-cols-[1fr_1fr] lg:gap-20">
+            <div>
+              <p className="chiffres text-sm font-medium text-brique-400">{forum.edition}</p>
+              <h2 className="mt-4 font-display text-[clamp(2rem,3.5vw,3.25rem)] font-light leading-[1.05]">
+                {forum.titre}
               </h2>
-              <p className="mt-5 text-lg leading-relaxed text-bleu-100/80">
-                Les prochaines interventions dans les établissements, et les comptes rendus des
-                précédentes. Ce qui n&apos;a pas encore eu lieu passe devant.
+              <p className="mt-6 max-w-[65ch] text-lg leading-relaxed text-bleu-100/80">
+                {forum.description}
               </p>
+
+              <CadrePhoto
+                ton="sombre"
+                largeur={1400}
+                hauteur={900}
+                src={contenus.textes["accueil.photo_forum"] || undefined}
+                alt="Plénière du Forum d'échanges"
+                sujet="Plénière du forum : salle d'établissement, élèves assis, intervenant au micro."
+                className="mt-10 aspect-[14/9] w-full"
+              />
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div>
+              <h3 className="border-b border-white/20 pb-4 text-sm font-semibold uppercase tracking-[0.14em] text-bleu-100/60">
+                Déroulé d&apos;une matinée
+              </h3>
+              <ol>
+                {deroule.map((etape) => (
+                  <li
+                    key={etape.horaire}
+                    className="ligne-remplie grid grid-cols-[8.5rem_1fr] items-baseline gap-4 border-b border-white/12 px-2 py-4"
+                  >
+                    <span className="chiffres text-sm text-bleu-100/60">{etape.horaire}</span>
+                    <span className="text-[15px] leading-snug">{etape.intitule}</span>
+                  </li>
+                ))}
+              </ol>
+
               <LienBouton
                 href="/evenements"
                 variante="fantome"
-                className="border border-white/25 text-white hover:bg-white/10"
+                className="mt-8 border border-white/25 text-white hover:bg-white/10"
               >
-                Agenda complet
-                <ArrowUpRight className="h-4 w-4" aria-hidden />
-              </LienBouton>
-              <LienBouton
-                href="/actualites"
-                variante="fantome"
-                className="border border-white/25 text-white hover:bg-white/10"
-              >
-                Toutes les actualités
+                Voir les prochaines dates
                 <ArrowUpRight className="h-4 w-4" aria-hidden />
               </LienBouton>
             </div>
-          </div>
-
-          <div className="mt-12">
-            {fil.length ? (
-              <FilActualite entrees={fil} />
-            ) : (
-              /*
-                Une piste vide ne dit rien. Tant que rien n'est publié, on
-                l'annonce plutôt que d'afficher un cadre creux.
-              */
-              <p className="rounded-2xl border border-dashed border-white/20 px-6 py-14 text-center text-bleu-100/70">
-                Aucune publication pour le moment. Les prochaines interventions et les comptes
-                rendus apparaîtront ici dès leur mise en ligne.
-              </p>
-            )}
           </div>
         </div>
       </section>

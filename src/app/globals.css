@@ -279,6 +279,33 @@ select {
     animation: carte-en-vue linear both;
     animation-timeline: view(inline);
   }
+
+  /*
+   * Un panneau pleine largeur occupe tout le cadre : la mise en avant à
+   * l'approche le ferait clignoter à chaque changement, les deux panneaux étant
+   * alors partiellement visibles.
+   */
+  .piste-defilante[data-plein="oui"] > * {
+    animation: none;
+  }
+}
+
+/*
+ * Respiration du visuel d'ouverture. Un aller-retour très lent, sans point de
+ * départ ni d'arrivée perceptible : l'image n'est jamais figée, et rien n'attire
+ * l'œil au point de gêner la lecture du titre posé à côté.
+ */
+@keyframes respiration {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.07);
+  }
+}
+
+.zoom-lent {
+  animation: respiration 22s ease-in-out infinite alternate;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -287,6 +314,11 @@ select {
    * ne la neutralise pas, il faut la couper explicitement.
    */
   .piste-defilante > * {
+    animation: none;
+  }
+
+  /* Une durée de 0,01 ms figerait le zoom sur son état d'arrivée. */
+  .zoom-lent {
     animation: none;
   }
 

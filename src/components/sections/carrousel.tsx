@@ -1,21 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { cn } from "@/components/ui/primitives";
 
 export type ElementCarrousel = { cle: string; contenu: ReactNode };
 
-/** Délai avant reprise de la dérive après une interaction. */
+/** Délai avant reprise du mouvement après une interaction. */
 const REPRISE = 2500;
 
 /**
  * Piste défilante générique.
  *
- * Toute la mécanique vit ici — enroulement, dérive, flèches, voiles de bord —
- * pour que les carrousels du site partagent une seule grammaire. Deux
+ * Toute la mécanique vit ici — enroulement, mouvement, flèches, voiles de bord,
+ * puces — pour que les carrousels du site partagent une seule grammaire. Deux
  * comportements différents sur une même page se remarquent immédiatement.
+ *
+ * Deux régimes de mouvement, jamais les deux à la fois :
+ *
+ * - la **dérive** continue, pour un rail de petites cartes qu'on balaie du
+ *   regard sans les lire une à une ;
+ * - l'**avance par pas**, pour des panneaux pleine largeur qu'on lit vraiment.
+ *   Une dérive continue sur un titre de trois lignes le rendrait illisible.
  *
  * Le défilement reste natif : doigt, trackpad, molette horizontale et
  * tabulation fonctionnent sans code, et le contenu reste atteignable si le
@@ -23,14 +37,24 @@ const REPRISE = 2500;
  */
 export function Carrousel({
   titre,
+  niveauTitre = 3,
   legende,
   elements,
   ton = "clair",
   derive = true,
   vitesse = 22,
   largeurCarte = "w-[15.5rem] sm:w-[17rem]",
+  intervalle = 0,
+  puces = false,
+  actions,
+  plein = false,
 }: {
   titre: string;
+  /**
+   * Rang du titre dans le plan de la page. La plupart des carrousels vivent
+   * sous un `h2` de section ; celui du hero suit directement le `h1`.
+   */
+  niveauTitre?: 2 | 3;
   /** Texte discret à droite du titre : un décompte, une période. */
   legende?: string;
   elements: ElementCarrousel[];
@@ -39,6 +63,13 @@ export function Carrousel({
   derive?: boolean;
   vitesse?: number;
   largeurCarte?: string;
+  /** Millisecondes entre deux avances automatiques. Remplace la dérive. */
+  intervalle?: number;
+  puces?: boolean;
+  /** Commandes propres à la section, posées à gauche des flèches. */
+  actions?: ReactNode;
+  /** Panneaux pleine largeur : ni voiles, ni mise en avant à l'approche. */
+  plein?: boolean;
 }) {
   const piste = useRef<HTMLUListElement>(null);
   const animation = useRef<number | null>(null);
@@ -59,18 +90,50 @@ export function Carrousel({
   const [enPause, setEnPause] = useState(false);
   const [versGauche, setVersGauche] = useState(false);
   const [versDroite, setVersDroite] = useState(false);
+  const [indexActif, setIndexActif] = useState(0);
+
+  /*
+   * Écart horizontal entre deux cartes, en géométrie réelle.
+   *
+   * `offsetLeft` est arrondi au pixel entier alors qu'une carte peut mesurer
+   * 1205,6 px : l'écart accumulait un demi-pixel par carte, et l'ancrage
+   * dérivait de quelques pixels sur un tour complet. Les rectangles, eux, sont
+   * fractionnaires, et leur différence ne dépend pas du défilement courant.
+   */
+  const ecartEntre = useCallback((element: HTMLElement, depuis: number, jusqu: number) => {
+    const premier = element.children[depuis] as HTMLElement | undefined;
+    const second = element.children[jusqu] as HTMLElement | undefined;
+    if (!premier) return 0;
+    if (!second) return premier.getBoundingClientRect().width;
+
+    return second.getBoundingClientRect().left - premier.getBoundingClientRect().left;
+  }, []);
+
+  /** Distance d'une carte à la suivante, gouttière comprise. */
+  const mesurerPas = useCallback(() => {
+    const element = piste.current;
+    return element ? ecartEntre(element, 0, 1) : 0;
+  }, [ecartEntre]);
 
   /** Largeur d'un tour complet, mesurée sur la première carte dupliquée. */
   const mesurerTour = useCallback(() => {
     const element = piste.current;
-    if (!element) return 0;
+    if (!element || !element.children[elements.length]) return 0;
 
-    const premier = element.children[0] as HTMLElement | undefined;
-    const copie = element.children[elements.length] as HTMLElement | undefined;
-    if (!premier || !copie) return 0;
+    return ecartEntre(element, 0, elements.length);
+  }, [ecartEntre, elements.length]);
 
-    return copie.offsetLeft - premier.offsetLeft;
-  }, [elements.length]);
+  /** Rang de la carte en place, ramené au tour réel. */
+  const majIndex = useCallback(() => {
+    const element = piste.current;
+    if (!element) return;
+
+    const pas = mesurerPas();
+    if (pas <= 0) return;
+
+    const brut = Math.round(element.scrollLeft / pas);
+    setIndexActif(((brut % elements.length) + elements.length) % elements.length);
+  }, [elements.length, mesurerPas]);
 
   const mesurer = useCallback(() => {
     const element = piste.current;
@@ -79,6 +142,7 @@ export function Carrousel({
     const deborde = element.scrollWidth > element.clientWidth + 4;
     const enroule = deborde && elements.length > 2;
     setBoucle(enroule);
+    majIndex();
 
     if (enroule) {
       // En boucle on peut toujours aller des deux côtés.
@@ -90,7 +154,7 @@ export function Carrousel({
     const reste = element.scrollWidth - element.clientWidth - element.scrollLeft;
     setVersGauche(element.scrollLeft > 4);
     setVersDroite(reste > 4);
-  }, [elements.length]);
+  }, [elements.length, majIndex]);
 
   useEffect(() => {
     mesurer();
@@ -118,6 +182,8 @@ export function Carrousel({
     const element = piste.current;
     if (!element || !boucle) return;
 
+    majIndex();
+
     const tour = mesurerTour();
     if (tour <= 0) return;
 
@@ -126,25 +192,57 @@ export function Carrousel({
     else if (x > tour * 2.5) element.scrollLeft = x - tour;
 
     position.current = element.scrollLeft;
-  }, [boucle, mesurerTour]);
+  }, [boucle, majIndex, mesurerTour]);
 
-  /** À l'entrée en boucle, on se place au début du tour central. */
+  /** Largeur du tour au moment du dernier recentrage. */
+  const tourPose = useRef(0);
+
+  /*
+   * À l'entrée en boucle, on se place au début du tour central.
+   *
+   * Sans condition sur la position courante : au rechargement, le navigateur
+   * restaure le défilement horizontal de la piste, et cette valeur ne veut plus
+   * rien dire une fois le contenu triplé — elle laissait le carrousel arrêté au
+   * milieu d'une carte.
+   *
+   * Le repère est la largeur du tour, pas un drapeau posé une fois : une mesure
+   * prise avant que les polices et les images ne soient arrivées donne un tour
+   * dérisoire, et le carrousel resterait calé sur cette valeur fausse. Tant
+   * qu'elle change, on se replace.
+   */
   useEffect(() => {
     const element = piste.current;
-    if (!element || !boucle) return;
+    if (!element || !boucle) {
+      tourPose.current = 0;
+      return;
+    }
 
-    const tour = mesurerTour();
-    if (tour <= 0 || element.scrollLeft > 4) return;
+    const placer = () => {
+      const tour = mesurerTour();
+      if (tour <= 0 || Math.abs(tour - tourPose.current) < 2) return;
 
-    element.scrollLeft = tour;
-    position.current = tour;
+      element.scrollLeft = tour;
+      position.current = tour;
+      tourPose.current = tour;
+    };
+
+    placer();
+
+    const observateur = new ResizeObserver(placer);
+    observateur.observe(element);
+    // La piste garde sa largeur quand ses cartes changent de hauteur ou de
+    // gabarit : c'est la première carte qui porte l'information.
+    const premiere = element.children[0];
+    if (premiere) observateur.observe(premiere);
+
+    return () => observateur.disconnect();
   }, [boucle, mesurerTour]);
 
   /* ------------------------------------------------------ Dérive continue */
 
   useEffect(() => {
     const element = piste.current;
-    if (!element || !derive || !boucle || enPause) return;
+    if (!element || !derive || intervalle > 0 || !boucle || enPause) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     // Un onglet masqué ne reçoit aucune image d'animation : `visibilitychange`
@@ -176,7 +274,7 @@ export function Carrousel({
       if (animation.current !== null) cancelAnimationFrame(animation.current);
       animation.current = null;
     };
-  }, [boucle, derive, enPause, mesurerTour, vitesse]);
+  }, [boucle, derive, enPause, intervalle, mesurerTour, vitesse]);
 
   useEffect(() => {
     const suivre = () => setEnPause(document.hidden);
@@ -194,7 +292,7 @@ export function Carrousel({
     repriseDifferee.current = setTimeout(() => setEnPause(false), REPRISE);
   }, []);
 
-  /* ---------------------------------------------------------- Flèches */
+  /* ------------------------------------------------------- Déplacements */
 
   function animerVers(element: HTMLElement, cible: number) {
     if (animation.current !== null) cancelAnimationFrame(animation.current);
@@ -211,9 +309,14 @@ export function Carrousel({
     }
 
     const duree = 420;
-    const debut = performance.now();
+
+    // L'horloge est celle de la première image : `performance.now()` lu ici
+    // avancerait d'un cran avant même que rien n'ait bougé.
+    let debut = 0;
 
     const avancer = (maintenant: number) => {
+      if (debut === 0) debut = maintenant;
+
       const t = Math.min(1, (maintenant - debut) / duree);
       // Sortie exponentielle : départ franc, arrivée qui se pose.
       const progression = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
@@ -231,16 +334,20 @@ export function Carrousel({
     animation.current = requestAnimationFrame(avancer);
   }
 
-  function glisser(direction: -1 | 1) {
+  /**
+   * Avance d'une page.
+   *
+   * `auto` distingue le mouvement de fond du geste de l'utilisateur : lui seul
+   * met le carrousel en pause, sans quoi l'avance automatique se suspendrait
+   * elle-même à chaque tour.
+   */
+  function deplacer(direction: -1 | 1, auto = false) {
     const element = piste.current;
     if (!element) return;
 
-    const cartes = element.children;
-    const premiere = cartes[0] as HTMLElement | undefined;
-    const seconde = cartes[1] as HTMLElement | undefined;
-    if (!premiere) return;
+    const pas = mesurerPas();
+    if (pas <= 0) return;
 
-    const pas = seconde ? seconde.offsetLeft - premiere.offsetLeft : premiere.offsetWidth;
     const parPage = Math.max(1, Math.floor(element.clientWidth / pas));
 
     let cible = element.scrollLeft + direction * pas * parPage;
@@ -248,10 +355,84 @@ export function Carrousel({
       cible = Math.min(element.scrollWidth - element.clientWidth, Math.max(0, cible));
     }
 
-    suspendre();
+    if (!auto) suspendre();
     animerVers(element, cible);
+    if (!auto) reprendreApresDelai();
+  }
+
+  /** Rejoint une carte par son rang, par le chemin le plus court. */
+  function allerA(rang: number) {
+    const element = piste.current;
+    if (!element) return;
+
+    const pas = mesurerPas();
+    if (pas <= 0) return;
+
+    const absolu = Math.round(element.scrollLeft / pas);
+    const courant = ((absolu % elements.length) + elements.length) % elements.length;
+
+    let ecart = rang - courant;
+    if (boucle) {
+      // Le tour est circulaire : passer par la fin peut être plus court.
+      if (ecart > elements.length / 2) ecart -= elements.length;
+      if (ecart < -elements.length / 2) ecart += elements.length;
+    }
+
+    const vise = element.children[absolu + ecart] as HTMLElement | undefined;
+    const origine = element.children[0] as HTMLElement | undefined;
+    if (!vise || !origine) return;
+
+    suspendre();
+    animerVers(element, vise.offsetLeft - origine.offsetLeft);
     reprendreApresDelai();
   }
+
+  /** Ramène la piste sur la carte la plus proche. */
+  function aligner() {
+    const element = piste.current;
+    if (!element || animation.current !== null) return;
+
+    const pas = mesurerPas();
+    if (pas <= 0) return;
+
+    const cible = Math.round(element.scrollLeft / pas) * pas;
+    if (Math.abs(cible - element.scrollLeft) > 2) animerVers(element, cible);
+  }
+
+  /* -------------------------------------------------- Avance automatique */
+
+  // Rafraîchies à chaque rendu : minuteur et écouteur appellent toujours la
+  // version qui connaît l'état courant, sans avoir à se reconstruire.
+  const avanceAuto = useRef<() => void>(() => {});
+  const alignementAuto = useRef<() => void>(() => {});
+  useEffect(() => {
+    avanceAuto.current = () => deplacer(1, true);
+    alignementAuto.current = aligner;
+  });
+
+  /*
+   * Un panneau pleine largeur doit se poser sur une carte entière. L'ancrage
+   * CSS ne peut pas s'en charger : en « mandatory » il contrarie les
+   * déplacements programmés, et la boucle le désactive de toute façon. On
+   * réaligne donc à la fin du geste, jamais pendant.
+   */
+  useEffect(() => {
+    const element = piste.current;
+    if (!element || !plein) return;
+
+    const surFin = () => alignementAuto.current();
+    element.addEventListener("scrollend", surFin);
+    return () => element.removeEventListener("scrollend", surFin);
+  }, [plein]);
+
+  useEffect(() => {
+    if (intervalle <= 0 || !boucle || enPause) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (document.hidden) return;
+
+    const minuteur = setInterval(() => avanceAuto.current(), intervalle);
+    return () => clearInterval(minuteur);
+  }, [boucle, enPause, intervalle]);
 
   /*
    * Contenu triplé pour que l'enroulement ne se voie pas. Les copies sont
@@ -267,6 +448,7 @@ export function Carrousel({
     : elements.map((e) => ({ ...e, copie: false }));
 
   const sombre = ton === "sombre";
+  const Intitule = niveauTitre === 2 ? "h2" : "h3";
 
   const classeFleche = (actif: boolean) =>
     cn(
@@ -288,16 +470,18 @@ export function Carrousel({
           sombre ? "border-white/15" : "border-craie-300",
         )}
       >
-        <h3
+        <Intitule
           className={cn(
             "text-sm font-semibold uppercase tracking-[0.14em]",
             sombre ? "text-bleu-100/60" : "text-bleu-800/60",
           )}
         >
           {titre}
-        </h3>
+        </Intitule>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {actions}
+
           {legende && (
             <span
               className={cn("chiffres text-xs", sombre ? "text-bleu-100/50" : "text-bleu-800/50")}
@@ -308,7 +492,7 @@ export function Carrousel({
 
           <button
             type="button"
-            onClick={() => glisser(-1)}
+            onClick={() => deplacer(-1)}
             disabled={!versGauche}
             className={classeFleche(versGauche)}
           >
@@ -318,7 +502,7 @@ export function Carrousel({
 
           <button
             type="button"
-            onClick={() => glisser(1)}
+            onClick={() => deplacer(1)}
             disabled={!versDroite}
             className={classeFleche(versDroite)}
           >
@@ -336,22 +520,27 @@ export function Carrousel({
           } as CSSProperties
         }
       >
-        <span
-          aria-hidden
-          className="voile-piste voile-piste-gauche"
-          data-visible={versGauche ? "oui" : "non"}
-        />
-        <span
-          aria-hidden
-          className="voile-piste voile-piste-droite"
-          data-visible={versDroite ? "oui" : "non"}
-        />
+        {!plein && (
+          <>
+            <span
+              aria-hidden
+              className="voile-piste voile-piste-gauche"
+              data-visible={versGauche ? "oui" : "non"}
+            />
+            <span
+              aria-hidden
+              className="voile-piste voile-piste-droite"
+              data-visible={versDroite ? "oui" : "non"}
+            />
+          </>
+        )}
 
         <ul
           ref={piste}
           tabIndex={0}
           aria-label={titre}
           data-boucle={boucle ? "oui" : "non"}
+          data-plein={plein ? "oui" : "non"}
           onScroll={boucle ? recentrer : mesurer}
           onMouseEnter={suspendre}
           onMouseLeave={reprendreApresDelai}
@@ -376,6 +565,33 @@ export function Carrousel({
           ))}
         </ul>
       </div>
+
+      {puces && elements.length > 1 && (
+        <div className="mt-6 flex items-center gap-2">
+          {elements.map((element, rang) => (
+            <button
+              key={element.cle}
+              type="button"
+              onClick={() => allerA(rang)}
+              aria-current={rang === indexActif || undefined}
+              className={cn(
+                "h-1 rounded-full transition-all duration-300",
+                rang === indexActif
+                  ? sombre
+                    ? "w-8 bg-brique-500"
+                    : "w-8 bg-bleu-800"
+                  : sombre
+                    ? "w-4 bg-white/25 hover:bg-white/50"
+                    : "w-4 bg-bleu-800/20 hover:bg-bleu-800/40",
+              )}
+            >
+              <span className="sr-only">
+                {titre} — panneau {rang + 1}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
