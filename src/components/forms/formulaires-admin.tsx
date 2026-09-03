@@ -2,9 +2,17 @@
 
 import { useActionState } from "react";
 
-import { enregistrerArticle, enregistrerCotisation, enregistrerEvenement } from "@/lib/actions/admin";
+import {
+  enregistrerArticle,
+  enregistrerContenus,
+  enregistrerCotisation,
+  enregistrerEvenement,
+  enregistrerMedia,
+} from "@/lib/actions/admin";
+import { CHAMPS_CONTENU, GROUPES_CONTENU } from "@/lib/contenus";
 import { ETAT_INITIAL } from "@/lib/actions/etat";
 import { BoutonEnvoi, CaseACocher, Champ, Selecteur, Zone } from "./champs";
+import { ChampImage } from "./champ-image";
 import { Message } from "@/components/ui/primitives";
 
 export function FormulaireEvenement() {
@@ -47,6 +55,13 @@ export function FormulaireEvenement() {
         <Champ nom="fin_le" label="Fin" type="datetime-local" erreurs={etat.erreurs} />
         <Champ nom="capacite" label="Capacité" type="number" min={0} erreurs={etat.erreurs} />
       </div>
+
+      <ChampImage
+        nom="image_url"
+        label="Visuel de l'événement"
+        dossier="evenements"
+        aide="Facultatif. Sans image, un visuel dérivé de l'identifiant est utilisé."
+      />
 
       <CaseACocher nom="publie" erreurs={etat.erreurs} defaultChecked>
         Publier immédiatement sur le site
@@ -97,6 +112,13 @@ export function FormulaireArticle() {
         />
         <Champ nom="auteur" label="Auteur" erreurs={etat.erreurs} />
       </div>
+
+      <ChampImage
+        nom="couverture_url"
+        label="Image de couverture"
+        dossier="articles"
+        aide="Facultatif. Elle illustre la carte de l'article et l'en-tête de la page."
+      />
 
       <CaseACocher nom="publie" erreurs={etat.erreurs} defaultChecked>
         Publier immédiatement
@@ -184,6 +206,125 @@ export function FormulaireCotisation({
       </div>
 
       <BoutonEnvoi>Enregistrer la cotisation</BoutonEnvoi>
+    </form>
+  );
+}
+
+export function FormulaireMedia({
+  evenements,
+}: {
+  evenements: Array<{ id: string; titre: string }>;
+}) {
+  const [etat, action] = useActionState(enregistrerMedia, ETAT_INITIAL);
+
+  return (
+    <form action={action} className="space-y-5" noValidate>
+      {etat.statut === "succes" && <Message ton="succes">{etat.message}</Message>}
+      {etat.statut === "erreur" && etat.message && <Message ton="erreur">{etat.message}</Message>}
+
+      <ChampImage
+        nom="url"
+        label="Photo"
+        dossier="galerie"
+        aide="Obligatoire. JPEG, PNG, WebP ou AVIF, 5 Mo maximum."
+      />
+
+      <Champ nom="titre" label="Titre" required erreurs={etat.erreurs} />
+      <Champ nom="legende" label="Légende" erreurs={etat.erreurs} />
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Champ nom="lieu" label="Lieu" erreurs={etat.erreurs} />
+        <Champ nom="prise_le" label="Prise le" type="date" erreurs={etat.erreurs} />
+      </div>
+
+      <Selecteur
+        nom="evenement_id"
+        label="Rattacher à un événement"
+        options={[
+          { valeur: "", libelle: "Aucun" },
+          ...evenements.map((evenement) => ({
+            valeur: evenement.id,
+            libelle: evenement.titre,
+          })),
+        ]}
+        erreurs={etat.erreurs}
+      />
+
+      <CaseACocher nom="publie" erreurs={etat.erreurs} defaultChecked>
+        Afficher dans la galerie publique
+      </CaseACocher>
+
+      <BoutonEnvoi>Ajouter la photo</BoutonEnvoi>
+    </form>
+  );
+}
+
+/**
+ * Édition des contenus du site.
+ *
+ * Le formulaire se construit depuis le registre `CHAMPS_CONTENU` : aucune
+ * liste de champs n'est recopiée ici, donc ajouter un contenu éditable ne
+ * demande pas de retoucher cet écran.
+ */
+export function FormulaireContenus({ valeurs }: { valeurs: Record<string, string> }) {
+  const [etat, action] = useActionState(enregistrerContenus, ETAT_INITIAL);
+
+  return (
+    <form action={action} className="space-y-10" noValidate>
+      {etat.statut === "succes" && <Message ton="succes">{etat.message}</Message>}
+      {etat.statut === "erreur" && etat.message && <Message ton="erreur">{etat.message}</Message>}
+
+      {GROUPES_CONTENU.map((groupe) => (
+        <section key={groupe}>
+          <h3 className="border-b border-craie-200 pb-3 text-sm font-semibold uppercase tracking-[0.12em] text-bleu-800/55">
+            {groupe}
+          </h3>
+
+          <div className="mt-6 space-y-5">
+            {CHAMPS_CONTENU.filter((champ) => champ.groupe === groupe).map((champ) => {
+              if (champ.type === "image") {
+                return (
+                  <ChampImage
+                    key={champ.cle}
+                    nom={champ.cle}
+                    label={champ.label}
+                    dossier="site"
+                    aide={champ.aide}
+                    valeurInitiale={valeurs[champ.cle]}
+                  />
+                );
+              }
+
+              if (champ.type === "long") {
+                return (
+                  <Zone
+                    key={champ.cle}
+                    nom={champ.cle}
+                    label={champ.label}
+                    rows={4}
+                    aide={champ.aide}
+                    defaultValue={valeurs[champ.cle]}
+                    erreurs={etat.erreurs}
+                  />
+                );
+              }
+
+              return (
+                <Champ
+                  key={champ.cle}
+                  nom={champ.cle}
+                  label={champ.label}
+                  aide={champ.aide}
+                  defaultValue={valeurs[champ.cle]}
+                  erreurs={etat.erreurs}
+                />
+              );
+            })}
+          </div>
+        </section>
+      ))}
+
+      <BoutonEnvoi>Enregistrer les contenus</BoutonEnvoi>
     </form>
   );
 }

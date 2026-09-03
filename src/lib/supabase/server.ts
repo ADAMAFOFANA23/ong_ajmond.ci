@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { estGestionnaire } from "@/lib/roles";
 import { SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL, supabaseConfigure } from "./env";
 import type { Profil } from "./types";
 
@@ -68,4 +69,13 @@ export async function profilCourant(): Promise<Profil | null> {
 export async function profilAdmin(): Promise<Profil | null> {
   const profil = await profilCourant();
   return profil?.role === "admin" ? profil : null;
+}
+
+/**
+ * Profil ayant accès à l'espace de gestion, quel que soit son rôle.
+ * Le cloisonnement par section se fait ensuite avec `peutAcceder`.
+ */
+export async function profilGestionnaire(): Promise<Profil | null> {
+  const profil = await profilCourant();
+  return profil && estGestionnaire(profil.role) ? profil : null;
 }

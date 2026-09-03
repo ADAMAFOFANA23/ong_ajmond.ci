@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Identité visuelle reprise du logo : bleu profond + rouge signal */
+  /* Ossature : bleu profond du logo. Le fond sombre n'est jamais gris. */
   --color-bleu-50: #eef2fb;
   --color-bleu-100: #dbe3f6;
   --color-bleu-200: #b9c8ec;
@@ -14,6 +14,7 @@
   --color-bleu-900: #1b2949;
   --color-bleu-950: #111a30;
 
+  /* Signal rare : action principale, alerte, accent unique d'une grille. */
   --color-brique-50: #fef2f2;
   --color-brique-100: #fde3e3;
   --color-brique-200: #fbcbcb;
@@ -25,23 +26,34 @@
   --color-brique-800: #931416;
   --color-brique-900: #7a1719;
 
+  /* Ivoire chaud : fond des sections claires. Le blanc pur est une surface posée dessus. */
+  --color-craie-50: #fdfbf7;
+  --color-craie-100: #f8f4ec;
+  --color-craie-200: #efe8da;
+  --color-craie-300: #e2d7c2;
+
   --color-sable-50: #fbf8f3;
   --color-sable-100: #f5efe4;
   --color-sable-200: #eaddc6;
 
-  --font-display: var(--police-titre), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--police-titre), ui-serif, Georgia, serif;
   --font-sans: var(--police-texte), ui-sans-serif, system-ui, sans-serif;
 
   --radius-xl2: 1.25rem;
+
+  --ease-sortie: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
   --fond: #ffffff;
   --texte: #1b2949;
+  color-scheme: light;
 }
 
 html {
   scroll-behavior: smooth;
+  /* Le hero est un aplat sombre : évite le flash blanc au rebond de défilement. */
+  background-color: var(--color-bleu-950);
 }
 
 body {
@@ -49,6 +61,7 @@ body {
   color: var(--texte);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 h1,
@@ -60,30 +73,135 @@ h4 {
   text-wrap: balance;
 }
 
-/* Motif discret repris de la courbe du logo */
-.motif-vagues {
-  background-image: radial-gradient(
-      circle at 12% 20%,
-      color-mix(in srgb, var(--color-bleu-600) 12%, transparent) 0,
-      transparent 45%
-    ),
-    radial-gradient(
-      circle at 88% 0%,
-      color-mix(in srgb, var(--color-brique-500) 10%, transparent) 0,
-      transparent 40%
-    );
+/* --------------------------------------------- Surfaces du navigateur */
+
+::selection {
+  background-color: var(--color-bleu-900);
+  color: #ffffff;
+}
+
+.sur-sombre ::selection {
+  background-color: var(--color-brique-500);
+  color: #ffffff;
+}
+
+html {
+  scrollbar-color: var(--color-bleu-300) var(--color-craie-100);
+  scrollbar-width: thin;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-brique-500);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.sur-sombre *:focus-visible {
+  outline-color: #ffffff;
+}
+
+input,
+textarea,
+select {
+  caret-color: var(--color-brique-500);
+}
+
+/* Les colonnes de montants et de dates doivent s'aligner. */
+.chiffres {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ------------------------------------------------------------ Matières */
+
+/*
+ * Emplacement photographique en attente : hachure diagonale, volontairement
+ * visible. Voir le composant CadrePhoto.
+ */
+.hachure {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, currentColor 12%, transparent) 0 1px,
+    transparent 1px 9px
+  );
+}
+
+/* Filet de séparation des listes, qui se remplit au survol. */
+.ligne-remplie {
+  background-image: linear-gradient(var(--color-craie-100), var(--color-craie-100));
+  background-size: 100% 0%;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.35s var(--ease-sortie);
+}
+
+.ligne-remplie:hover,
+.ligne-remplie:focus-within {
+  background-size: 100% 100%;
+}
+
+.sur-sombre .ligne-remplie {
+  background-image: linear-gradient(
+    color-mix(in srgb, #ffffff 7%, transparent),
+    color-mix(in srgb, #ffffff 7%, transparent)
+  );
 }
 
 .lien-souligne {
   background-image: linear-gradient(currentColor, currentColor);
-  background-size: 0% 2px;
+  background-size: 0% 1px;
   background-position: 0 100%;
   background-repeat: no-repeat;
-  transition: background-size 0.25s ease;
+  text-underline-offset: 0.25em;
+  transition: background-size 0.25s var(--ease-sortie);
 }
 
 .lien-souligne:hover {
-  background-size: 100% 2px;
+  background-size: 100% 1px;
+}
+
+/* ----------------------------------------------------------- Mouvement */
+
+/*
+ * Unique moment auteur du site : à l'ouverture du hero, le filet se déploie
+ * et le titre monte. L'état de départ est déjà lisible — rien n'apparaît
+ * depuis l'invisible, rien ne dépend du défilement.
+ */
+@keyframes filet-deploie {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes titre-monte {
+  from {
+    transform: translateY(0.5em);
+    opacity: 0.55;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.ouverture-filet {
+  transform-origin: left;
+  animation: filet-deploie 0.9s var(--ease-sortie) both;
+}
+
+.ouverture-titre {
+  animation: titre-monte 0.8s var(--ease-sortie) both;
+}
+
+.ouverture-delai-1 {
+  animation-delay: 0.1s;
+}
+
+.ouverture-delai-2 {
+  animation-delay: 0.2s;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -91,6 +209,7 @@ h4 {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }

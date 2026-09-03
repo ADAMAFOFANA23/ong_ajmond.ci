@@ -11,6 +11,7 @@ import {
   Surtitre,
   TitreSection,
 } from "@/components/ui/primitives";
+import { Vignette } from "@/components/ui/vignette";
 import { CIBLES, PROGRAMMES, STRATEGIES } from "@/content/organisation";
 
 export const metadata: Metadata = {
@@ -44,13 +45,16 @@ export default function PageActions() {
 
       <Section className="bg-white">
         <ul className="space-y-16">
-          {PROGRAMMES.map((programme, index) => (
+          {PROGRAMMES.map((programme) => (
             <li key={programme.slug} id={programme.slug} className="scroll-mt-28">
               <div className="grid gap-8 lg:grid-cols-12">
                 <div className="lg:col-span-4">
-                  <span className="font-display text-5xl font-bold text-bleu-100">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
+                  {/*
+                    Visuel propre à chaque programme, dérivé de son slug :
+                    l'ONG n'a pas encore de photothèque, mais aucune action ne
+                    reste sans élément visuel. Voir src/components/ui/vignette.
+                  */}
+                  <Vignette graine={programme.slug} className="aspect-[4/3] w-full" />
                   <Badge ton="brique" className="mt-4">
                     {programme.edition}
                   </Badge>

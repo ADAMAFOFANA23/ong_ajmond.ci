@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, CalendarDays, MapPin } from "lucide-react";
 
 import { Badge, Carte } from "@/components/ui/primitives";
+import { Vignette } from "@/components/ui/vignette";
 import { estAVenir, formaterDateCourte, formaterHeure } from "@/lib/format";
 import type { Article, Evenement } from "@/lib/supabase/types";
 
@@ -9,10 +10,18 @@ export function CarteEvenement({ evenement }: { evenement: Evenement }) {
   const aVenir = estAVenir(evenement.debut_le);
 
   return (
-    <Carte className="flex h-full flex-col">
+    <article className="flex h-full flex-col overflow-hidden border border-craie-300 bg-white transition-colors hover:border-bleu-300">
+      <Vignette
+        graine={evenement.slug}
+        src={evenement.image_url}
+        alt=""
+        className="aspect-[16/9] w-full"
+      />
+
+      <div className="flex flex-1 flex-col p-6">
       <div className="flex items-center justify-between gap-3">
         <Badge ton={aVenir ? "vert" : "neutre"}>{aVenir ? "À venir" : "Passé"}</Badge>
-        <span className="text-xs font-semibold uppercase tracking-wider text-bleu-800/50">
+        <span className="chiffres text-xs font-semibold uppercase tracking-wider text-bleu-800/50">
           {formaterDateCourte(evenement.debut_le)}
         </span>
       </div>
@@ -53,7 +62,8 @@ export function CarteEvenement({ evenement }: { evenement: Evenement }) {
         Voir le détail
         <ArrowUpRight className="h-4 w-4" aria-hidden />
       </Link>
-    </Carte>
+      </div>
+    </article>
   );
 }
 

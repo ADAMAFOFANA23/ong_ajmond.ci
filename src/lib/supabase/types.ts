@@ -1,6 +1,12 @@
 export type TypeMembre = "fondateur" | "actif" | "honneur" | "bienfaiteur";
 export type StatutDemande = "nouvelle" | "en_cours" | "acceptee" | "refusee";
-export type RoleUtilisateur = "membre" | "admin";
+/** Miroir de l'énumération `role_utilisateur`. Voir `src/lib/roles.ts`. */
+export type RoleUtilisateur =
+  | "membre"
+  | "admin"
+  | "communication"
+  | "tresorerie"
+  | "secretariat";
 export type StatutCotisation = "a_payer" | "payee" | "en_retard";
 export type NatureCotisation = "adhesion" | "mensuelle" | "exceptionnelle" | "don";
 

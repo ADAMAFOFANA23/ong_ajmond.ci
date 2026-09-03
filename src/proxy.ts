@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { accueilDe, estGestionnaire, peutAcceder, sectionDuChemin } from "@/lib/roles";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabaseConfigure } from "@/lib/supabase/env";
 
 const ROUTES_PROTEGEES = ["/espace-membre", "/admin"];
@@ -48,9 +49,20 @@ export async function proxy(requete: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (profil?.role !== "admin") {
+    const role = profil?.role;
+
+    // Sans rôle de gestion, l'espace d'administration n'existe pas.
+    if (!estGestionnaire(role)) {
       const url = requete.nextUrl.clone();
       url.pathname = "/espace-membre";
+      return NextResponse.redirect(url);
+    }
+
+    // Rôle de gestion, mais pas sur cette section : renvoi vers son accueil.
+    if (!peutAcceder(role, sectionDuChemin(chemin))) {
+      const url = requete.nextUrl.clone();
+      url.pathname = accueilDe(role);
+      url.search = "";
       return NextResponse.redirect(url);
     }
   }

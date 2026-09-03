@@ -2,6 +2,7 @@ import "server-only";
 
 import { creerClientServeur } from "@/lib/supabase/server";
 import type { Article, Cotisation, Evenement, Media } from "@/lib/supabase/types";
+import { contenusParDefaut, fusionnerContenus, type Contenus } from "@/lib/contenus";
 
 /* ------------------------------------------------------------ Événements */
 
@@ -132,4 +133,17 @@ export async function listerMesInscriptions(profilId: string) {
     cree_le: ligne.cree_le,
     evenement: Array.isArray(ligne.evenements) ? (ligne.evenements[0] ?? null) : ligne.evenements,
   }));
+}
+
+/**
+ * Contenus du site : surcharges enregistrées par le bureau, complétées par
+ * les valeurs livrées dans le code. Ne lève jamais — un site public ne doit
+ * pas tomber parce qu'une table de configuration est absente.
+ */
+export async function lireContenus(): Promise<Contenus> {
+  const supabase = await creerClientServeur();
+  if (!supabase) return contenusParDefaut();
+
+  const { data } = await supabase.from("contenus_site").select("cle, valeur, image_url");
+  return fusionnerContenus(data ?? null);
 }

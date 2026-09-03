@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 
-import { Entete } from "@/components/layout/entete";
-import { PiedDePage } from "@/components/layout/pied-de-page";
 import { MOTS_CLES, ORGANISATION } from "@/content/organisation";
 import { SITE_URL } from "@/lib/site";
-import { profilCourant } from "@/lib/supabase/server";
 import "./globals.css";
 
 const policeTexte = Inter({
@@ -14,7 +11,12 @@ const policeTexte = Inter({
   display: "swap",
 });
 
-const policeTitre = Outfit({
+/**
+ * Serif à axes variables, dessinée pour les grandes tailles. Elle porte la
+ * gravité institutionnelle que la photographie d'architecture portait dans le
+ * template de référence, que ce projet n'a pas.
+ */
+const policeTitre = Fraunces({
   subsets: ["latin"],
   variable: "--police-titre",
   display: "swap",
@@ -27,7 +29,7 @@ export const metadata: Metadata = {
     template: `%s · ${ORGANISATION.sigle}`,
   },
   description:
-    "ONG ivoirienne de prévention des fléaux sociaux en milieu scolaire : sensibilisation, écoute, formation des encadreurs et réinsertion des jeunes.",
+    "ONG ivoirienne de prévention des fléaux sociaux en milieu scolaire : sensibilisation, écoute, formation des encadreurs et réinsertion.",
   keywords: MOTS_CLES,
   openGraph: {
     type: "website",
@@ -39,25 +41,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+/**
+ * Racine minimale : polices, styles et lien d'évitement.
+ *
+ * L'en-tête et le pied de page publics appartiennent au groupe `(site)`.
+ * L'administration a sa propre coque plein écran et n'hérite d'aucun chrome
+ * de site vitrine.
+ */
+export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const profil = await profilCourant();
-
   return (
     <html lang="fr" className={`${policeTexte.variable} ${policeTitre.variable}`}>
       <body className="flex min-h-screen flex-col">
         <a
           href="#contenu"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-bleu-600 focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-brique-500 focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white"
         >
           Aller au contenu principal
         </a>
-        <Entete connecte={Boolean(profil)} admin={profil?.role === "admin"} />
-        <main id="contenu" className="flex-1">
-          {children}
-        </main>
-        <PiedDePage />
+        {children}
       </body>
     </html>
   );

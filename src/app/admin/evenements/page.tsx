@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge, EtatVide } from "@/components/ui/primitives";
+import { Vignette } from "@/components/ui/vignette";
 import { FormulaireEvenement } from "@/components/forms/formulaires-admin";
 import { basculerPublicationEvenement } from "@/lib/actions/admin";
 import { formaterPlage } from "@/lib/format";
@@ -31,16 +32,23 @@ export default async function PageAdminEvenements() {
                   className="rounded-2xl border border-bleu-100 bg-white p-5"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-bleu-900">
-                        <Link href={`/evenements/${evenement.slug}`} className="lien-souligne">
-                          {evenement.titre}
-                        </Link>
-                      </p>
-                      <p className="mt-1 text-xs text-bleu-800/60">
-                        {formaterPlage(evenement.debut_le, evenement.fin_le)}
-                        {evenement.etablissement ? ` · ${evenement.etablissement}` : ""}
-                      </p>
+                    <div className="flex min-w-0 items-start gap-4">
+                      <Vignette
+                        graine={evenement.slug}
+                        src={evenement.image_url}
+                        className="h-14 w-20 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <p className="font-medium text-bleu-900">
+                          <Link href={`/evenements/${evenement.slug}`} className="lien-souligne">
+                            {evenement.titre}
+                          </Link>
+                        </p>
+                        <p className="chiffres mt-1 text-xs text-bleu-800/60">
+                          {formaterPlage(evenement.debut_le, evenement.fin_le)}
+                          {evenement.etablissement ? ` · ${evenement.etablissement}` : ""}
+                        </p>
+                      </div>
                     </div>
                     <Badge ton={evenement.publie ? "vert" : "neutre"}>
                       {evenement.publie ? "Publié" : "Brouillon"}

@@ -187,9 +187,9 @@ export function Message({
 
 export function EtatVide({ titre, texte }: { titre: string; texte: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-bleu-200 bg-bleu-50/40 px-6 py-14 text-center">
+    <div className="rounded-xl border border-dashed border-craie-300 bg-craie-50 px-6 py-14 text-center">
       <p className="font-display text-lg font-semibold text-bleu-900">{titre}</p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-bleu-800/70">{texte}</p>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-bleu-800/70">{texte}</p>
     </div>
   );
 }

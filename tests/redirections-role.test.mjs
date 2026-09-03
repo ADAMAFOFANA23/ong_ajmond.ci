@@ -168,6 +168,33 @@ test("un membre accède à son propre espace", async () => {
   assert.equal(statut, 200);
 });
 
+test("un membre ne peut pas se promouvoir administrateur", async () => {
+  const session = await ouvrirSession(COMPTE_MEMBRE);
+
+  const tentative = await fetch(
+    `${SUPABASE_URL}/rest/v1/profils?id=eq.${session.user.id}`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: CLE_ANON,
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ role: "admin" }),
+    },
+  );
+
+  assert.equal(tentative.status, 403, "l'API a accepté une auto-promotion");
+
+  const apres = await fetch(
+    `${SUPABASE_URL}/rest/v1/profils?id=eq.${session.user.id}&select=role`,
+    { headers: { apikey: CLE_ANON, Authorization: `Bearer ${session.access_token}` } },
+  );
+  const [profil] = await apres.json();
+
+  assert.equal(profil.role, "membre", "le rôle a changé malgré le refus");
+});
+
 test("un administrateur accède à l'espace d'administration", async () => {
   const session = await ouvrirSession(COMPTE_ADMIN);
   const cookie = cookiePour(session);

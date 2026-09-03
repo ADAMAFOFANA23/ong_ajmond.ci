@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, MapPin, Users } from "lucide-react";
 
 import { Badge, Conteneur, Section } from "@/components/ui/primitives";
+import { Vignette } from "@/components/ui/vignette";
 import { FormulaireInscriptionEvenement } from "@/components/forms/formulaire-inscription-evenement";
 import { PROGRAMMES } from "@/content/organisation";
 import { trouverEvenement } from "@/lib/donnees";
@@ -57,6 +58,14 @@ export default async function PageEvenement({ params }: Props) {
               {evenement.chapo}
             </p>
           )}
+
+          <Vignette
+            graine={evenement.slug}
+            src={evenement.image_url}
+            alt=""
+            legende={[evenement.etablissement, evenement.ville].filter(Boolean).join(" · ")}
+            className="mt-8 aspect-[21/9] w-full"
+          />
         </Conteneur>
       </section>
 

@@ -39,7 +39,7 @@ export function Entete({ connecte, admin }: { connecte: boolean; admin: boolean 
                     href={lien.href}
                     aria-current={actif ? "page" : undefined}
                     className={cn(
-                      "rounded-full px-3.5 py-2 text-sm font-medium transition-colors",
+                      "whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-colors",
                       actif ? "bg-bleu-50 text-bleu-700" : "text-bleu-800/75 hover:text-bleu-700",
                     )}
                   >
@@ -54,16 +54,16 @@ export function Entete({ connecte, admin }: { connecte: boolean; admin: boolean 
         <div className="hidden items-center gap-2 lg:flex">
           <Link
             href={lienEspace}
-            className="inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium text-bleu-800/75 transition-colors hover:text-bleu-700"
+            className="inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium text-bleu-800/75 transition-colors hover:text-bleu-700"
           >
-            <UserRound className="h-4 w-4" aria-hidden />
+            <UserRound className="h-4 w-4 shrink-0" aria-hidden />
             {libelleEspace}
           </Link>
           {/* Un membre déjà connecté n'a rien à faire d'un appel à adhérer. */}
           {!connecte && (
             <Link
               href="/adhesion"
-              className="inline-flex items-center rounded-full bg-brique-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brique-600"
+              className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-brique-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brique-600"
             >
               Adhérer
             </Link>
