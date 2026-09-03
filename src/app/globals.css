@@ -221,15 +221,14 @@ select {
  * Piste de défilement horizontal à points d'ancrage. Le défilement natif est
  * conservé — doigt, trackpad, clavier — et seule la barre est masquée : les
  * boutons ne sont qu'un raccourci supplémentaire, jamais le seul moyen.
+ *
+ * « proximity » et non « mandatory » : l'ancrage impératif entre en conflit
+ * avec le défilement animé déclenché par les flèches — le moteur ramène
+ * l'animation à son point de départ et le carrousel paraît figé. En
+ * proximité, l'alignement se fait quand l'utilisateur s'arrête près d'une
+ * carte, sans jamais contrarier un déplacement programmé.
  */
 .piste-defilante {
-  /*
-   * « proximity » et non « mandatory » : l'ancrage impératif entre en conflit
-   * avec le défilement animé déclenché par les flèches — le moteur ramène
-   * l'animation à son point de départ et le carrousel paraît figé. En
-   * proximité, l'alignement se fait quand l'utilisateur s'arrête près d'une
-   * carte, sans jamais contrarier un déplacement programmé.
-   */
   scroll-snap-type: x proximity;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -242,4 +241,81 @@ select {
 
 .piste-defilante > * {
   scroll-snap-align: start;
+}
+
+/*
+ * Mise en avant pilotée par le défilement lui-même : chaque carte se pose en
+ * entrant dans la fenêtre et se retire en sortant. La timeline est native,
+ * calculée hors du fil principal — aucun écouteur de `scroll`, aucun
+ * `IntersectionObserver`, et rien à nettoyer.
+ */
+@keyframes carte-en-vue {
+  0% {
+    opacity: 0.25;
+    transform: scale(0.955);
+  }
+  16%,
+  84% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.25;
+    transform: scale(0.955);
+  }
+}
+
+@supports (animation-timeline: view(inline)) {
+  .piste-defilante > * {
+    animation: carte-en-vue linear both;
+    animation-timeline: view(inline);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * Une animation de défilement n'a pas de durée : la règle générale plus haut
+   * ne la neutralise pas, il faut la couper explicitement.
+   */
+  .piste-defilante > * {
+    animation: none;
+  }
+
+  .voile-piste {
+    transition: none;
+  }
+}
+
+/*
+ * Fondu de bord. Deux voiles posés sur la piste plutôt qu'un `mask-image` :
+ * l'animation d'un masque suppose une propriété personnalisée enregistrée, et
+ * la chaîne de construction réécrit son `initial-value` en une valeur que la
+ * syntaxe `<length>` refuse — le masque restait alors bloqué à zéro.
+ *
+ * Ils ne décorent pas : chacun n'apparaît que du côté où la piste continue.
+ * C'est l'information portée par l'extinction des flèches, donnée sans avoir
+ * à les regarder.
+ */
+.voile-piste {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0.5rem;
+  width: 4rem;
+  opacity: 0;
+  transition: opacity 0.45s var(--ease-sortie);
+}
+
+.voile-piste[data-visible="oui"] {
+  opacity: 1;
+}
+
+.voile-piste-gauche {
+  left: 0;
+  background: linear-gradient(to right, var(--color-craie-100), transparent);
+}
+
+.voile-piste-droite {
+  right: 0;
+  background: linear-gradient(to left, var(--color-craie-100), transparent);
 }

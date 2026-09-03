@@ -96,7 +96,9 @@ export function CarrouselPartenaires({
 
     const avancer = (maintenant: number) => {
       const t = Math.min(1, (maintenant - debut) / duree);
-      element.scrollLeft = depart + distance * (1 - Math.pow(1 - t, 3));
+      // Sortie exponentielle : départ franc, arrivée qui se pose.
+      const progression = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+      element.scrollLeft = depart + distance * progression;
 
       if (t < 1) {
         animation.current = requestAnimationFrame(avancer);
@@ -183,12 +185,16 @@ export function CarrouselPartenaires({
         </div>
       </div>
 
+      <div className="relative mt-6">
+      <span aria-hidden className="voile-piste voile-piste-gauche" data-visible={versGauche ? "oui" : "non"} />
+      <span aria-hidden className="voile-piste voile-piste-droite" data-visible={versDroite ? "oui" : "non"} />
+
       <ul
         ref={piste}
         onScroll={mesurer}
         tabIndex={0}
         aria-label={titre}
-        className="piste-defilante mt-6 flex gap-4 overflow-x-auto pb-2"
+        className="piste-defilante flex gap-4 overflow-x-auto pb-2"
       >
         {partenaires.map((partenaire) => {
           const contenu = (
@@ -236,7 +242,7 @@ export function CarrouselPartenaires({
                   href={partenaire.siteUrl}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="flex h-full flex-col rounded-2xl border border-craie-300 bg-white p-5 transition-colors hover:border-bleu-300"
+                  className="flex h-full flex-col rounded-2xl border border-craie-300 bg-white p-5 transition duration-300 ease-out hover:-translate-y-1 hover:border-bleu-300 hover:shadow-[0_14px_34px_-16px_rgba(17,26,48,0.45)]"
                 >
                   {contenu}
                 </a>
@@ -249,6 +255,7 @@ export function CarrouselPartenaires({
           );
         })}
       </ul>
+      </div>
     </section>
   );
 }
